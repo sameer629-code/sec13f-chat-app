@@ -358,8 +358,19 @@ def safe_dataframe(rows, columns=None):
     try:
         if not rows:
             return pd.DataFrame()
-        if columns and len(columns) == len(rows[0]):
-            return pd.DataFrame(rows, columns=columns)
+        # Find actual data width from the first non-empty row
+        data_width = len(rows[0]) if rows else 0
+        if columns and data_width > 0:
+            if len(columns) == data_width:
+                # Perfect match
+                return pd.DataFrame(rows, columns=columns)
+            elif len(columns) > data_width:
+                # More column names than data columns — truncate column names
+                return pd.DataFrame(rows, columns=columns[:data_width])
+            else:
+                # More data columns than column names — pad with generic names
+                padded = list(columns) + [f"COL_{i}" for i in range(len(columns), data_width)]
+                return pd.DataFrame(rows, columns=padded)
         else:
             return pd.DataFrame(rows)
     except Exception:
