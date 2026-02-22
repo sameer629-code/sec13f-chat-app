@@ -1,0 +1,63 @@
+# Secrets - NEVER commit
+.streamlit/secrets.toml
+secrets.toml
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Keys directory
+keys/
+*.pem
+*.p8
+
+# Scripts with credentials (don't deploy)
+check_schema.py
+ingest_sec_13f.py
+analyze_dynamic_tables.py
+check_low_value_managers.py
+cleanup_low_value_managers.py
+investigate_low_value_managers.py
+verify_parent_holdings.py
+verify_prompts.py
+
+# Log and data files
+*.log
+*.txt
+!requirements.txt
+ingest_progress.json
+
+# Large media files
+*.mov
+*.mp4
+*.avi
+
+# SQL scripts (internal use only)
+*.sql
+
+# Shell scripts
+run_ingestion.sh
+
+# Snowflake-internal Streamlit version
+streamlit_in_snowflake/
