@@ -1249,7 +1249,7 @@ with st.sidebar:
     st.markdown("""
     <div style="font-size: 0.8rem; color: #9ca3af; line-height: 1.9; margin-bottom: 1rem;">
         <div>📊 <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&CIK=&type=13F&company=&dateb=&owner=include&count=40" target="_blank" style="color: #60a5fa; text-decoration: none;">SEC EDGAR 13F Filings</a></div>
-        <div>📅 Q4 2024 · Q1 · Q2 · Q3 2025</div>
+        <div>📅 Q4 2024 · Q1 · Q2 · Q3 2025 · <span style="color: #fbbf24;">Q4 🔜</span></div>
         <div>📁 13M+ holdings · 8,300+ institutions</div>
         <div>💰 Institutions >$100M AUM</div>
     </div>
@@ -1269,8 +1269,11 @@ with st.sidebar:
         | **Q1 2025** | Mar 31, 2025 | May 15, 2025 |
         | **Q2 2025** | Jun 30, 2025 | Aug 14, 2025 |
         | **Q3 2025** | Sep 30, 2025 | Nov 14, 2025 |
+        | **Q4 2025** | Dec 31, 2025 | *Feb 2026* 🔜 |
         
         *Example: Q2 2025 shows positions held on June 30, 2025*
+        
+        ⏳ **Q4 2025 data** will be available by end of February 2026
         """, unsafe_allow_html=True)
     
     st.markdown('<p class="sidebar-title">Common Prompts</p>', unsafe_allow_html=True)
