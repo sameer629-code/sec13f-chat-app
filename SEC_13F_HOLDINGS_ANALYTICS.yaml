@@ -1,0 +1,664 @@
+name: SEC_13F_HOLDINGS_ANALYTICS
+description: >-
+  SEC 13F Holdings Analytics across Q4 2024 through Q4 2025. Contains STOCKS and ETFs only
+  (options, bonds, calls, and puts are excluded). Q4 2025 is the LATEST quarter
+  (as of December 31, 2025). Default to Q4 2025 when no quarter is specified.
+tables:
+  - name: HOLDINGS
+    description: Institutional investor stock/ETF holdings with pivoted quarterly columns
+    base_table:
+      database: SEC_13F_ANALYTICS
+      schema: SEMANTIC_LAYER
+      table: HOLDINGS_CLEAN
+    dimensions:
+      - name: COMPANY_NAME
+        description: Company name of the stock held (e.g. AMAZON COM INC, APPLE INC, NVIDIA CORPORATION)
+        expr: COMPANY_NAME
+        data_type: VARCHAR(500)
+      - name: CUSIP
+        description: CUSIP security identifier (unique per security)
+        expr: CUSIP
+        data_type: VARCHAR(27)
+      - name: HEDGE_FUND_CIK
+        description: SEC Central Index Key for the institutional investor / asset manager
+        expr: HEDGE_FUND_CIK
+        data_type: VARCHAR(20)
+      - name: HEDGE_FUND_NAME
+        description: >-
+          Name of the 13F filer (hedge funds, asset managers, banks, insurance cos).
+          e.g. BERKSHIRE HATHAWAY INC, BLACKROCK INC, VANGUARD GROUP INC.
+        expr: HEDGE_FUND_NAME
+        data_type: VARCHAR(500)
+      - name: SECURITY_TYPE
+        description: Always 'STOCK' in this dataset. ETFs are also classified as STOCK; use IS_ETF to distinguish.
+        expr: SECURITY_TYPE
+        data_type: VARCHAR(6)
+        sample_values:
+          - STOCK
+      - name: IS_ETF
+        description: >-
+          TRUE if the security is an ETF/index fund. Use IS_ETF = TRUE to filter ETFs
+          (catches SPY, QQQ, VTI etc. that lack 'ETF' in TITLE_OF_CLASS).
+        expr: IS_ETF
+        data_type: BOOLEAN
+        sample_values:
+          - 'true'
+          - 'false'
+      - name: ETF_TICKER
+        description: ETF ticker symbol (e.g. SPY, QQQ, VTI, IVV, VOO). Only populated for top ~60 ETFs.
+        expr: ETF_TICKER
+        data_type: VARCHAR(20)
+        sample_values:
+          - SPY
+          - QQQ
+          - VTI
+          - IVV
+          - VOO
+      - name: ETF_CATEGORY
+        description: >-
+          ETF category (e.g. S&P 500, Nasdaq 100, Total Market, Technology, Growth).
+          Only populated for top ~60 ETFs.
+        expr: ETF_CATEGORY
+        data_type: VARCHAR(100)
+        sample_values:
+          - S&P 500
+          - Nasdaq 100
+          - Total Market
+          - Technology
+          - Growth
+          - Value
+      - name: TITLE_OF_CLASS
+        description: >-
+          Security class as reported (COM, CL A, CL B, SHS). ETFs often lack 'ETF' here
+          (e.g. SPY = 'TR UNIT'). Use IS_ETF = TRUE for ETF filtering.
+        expr: TITLE_OF_CLASS
+        data_type: VARCHAR(500)
+        sample_values:
+          - COM
+          - CL A
+          - SHS
+    facts:
+      - name: Y2024_Q4_SHARES
+        description: Shares held in Q4 2024
+        expr: Y2024_Q4_SHARES
+        data_type: NUMBER(18,0)
+      - name: Y2024_Q4_VALUE
+        description: Reported value (USD in $000s) in Q4 2024
+        expr: Y2024_Q4_VALUE
+        data_type: NUMBER(25,3)
+      - name: Y2025_Q1_SHARES
+        description: Shares held in Q1 2025
+        expr: Y2025_Q1_SHARES
+        data_type: NUMBER(18,0)
+      - name: Y2025_Q1_VALUE
+        description: Reported value (USD in $000s) in Q1 2025
+        expr: Y2025_Q1_VALUE
+        data_type: NUMBER(25,3)
+      - name: Y2025_Q2_SHARES
+        description: Shares held in Q2 2025
+        expr: Y2025_Q2_SHARES
+        data_type: NUMBER(18,0)
+      - name: Y2025_Q2_VALUE
+        description: Reported value (USD in $000s) in Q2 2025
+        expr: Y2025_Q2_VALUE
+        data_type: NUMBER(25,3)
+      - name: Y2025_Q3_SHARES
+        description: Shares held in Q3 2025
+        expr: Y2025_Q3_SHARES
+        data_type: NUMBER(18,0)
+      - name: Y2025_Q3_VALUE
+        description: Reported value (USD in $000s) in Q3 2025
+        expr: Y2025_Q3_VALUE
+        data_type: NUMBER(25,3)
+      - name: Y2025_Q4_SHARES
+        description: Shares held in Q4 2025 (latest quarter, as of December 31, 2025)
+        expr: Y2025_Q4_SHARES
+        data_type: NUMBER(18,0)
+      - name: Y2025_Q4_VALUE
+        description: Reported value (USD in $000s) in Q4 2025 (latest quarter, as of December 31, 2025)
+        expr: Y2025_Q4_VALUE
+        data_type: NUMBER(25,3)
+      - name: Q3_TO_Q4_SHARES_CHANGE
+        description: Absolute change in shares from Q3 to Q4 2025
+        expr: Y2025_Q4_SHARES - Y2025_Q3_SHARES
+        data_type: NUMBER(19,0)
+      - name: Q3_TO_Q4_SHARES_PCT_CHANGE
+        description: Percentage change in shares from Q3 to Q4 2025
+        expr: (Y2025_Q4_SHARES - Y2025_Q3_SHARES) * 100.0 / NULLIF(Y2025_Q3_SHARES, 0)
+        data_type: NUMBER(28,6)
+      - name: Q3_TO_Q4_VALUE_CHANGE
+        description: Absolute change in reported value from Q3 to Q4 2025
+        expr: Y2025_Q4_VALUE - Y2025_Q3_VALUE
+        data_type: NUMBER(26,3)
+      - name: Q3_TO_Q4_VALUE_PCT_CHANGE
+        description: Percentage change in reported value from Q3 to Q4 2025
+        expr: (Y2025_Q4_VALUE - Y2025_Q3_VALUE) * 100.0 / NULLIF(Y2025_Q3_VALUE, 0)
+        data_type: NUMBER(38,9)
+      - name: Q2_TO_Q3_SHARES_CHANGE
+        description: Absolute change in shares from Q2 to Q3 2025
+        expr: Y2025_Q3_SHARES - Y2025_Q2_SHARES
+        data_type: NUMBER(19,0)
+      - name: Q1_TO_Q4_SHARES_PCT_CHANGE
+        description: Percentage change in shares from Q1 to Q4 2025 (full year)
+        expr: (Y2025_Q4_SHARES - Y2025_Q1_SHARES) * 100.0 / NULLIF(Y2025_Q1_SHARES, 0)
+        data_type: NUMBER(28,6)
+    filters:
+      - name: ETF_ONLY
+        description: Only ETF/index fund holdings
+        expr: IS_ETF = TRUE
+      - name: STOCKS_ONLY_NO_ETF
+        description: Only individual stocks, excluding ETFs
+        expr: IS_ETF = FALSE
+      - name: ACTIVE_Q4_2025_POSITIONS
+        description: Positions with reported values in Q4 2025 (latest quarter)
+        expr: Y2025_Q4_VALUE IS NOT NULL
+      - name: NEW_POSITIONS_Q4
+        description: New positions in Q4 2025 with no Q3 holdings
+        expr: Y2025_Q4_VALUE IS NOT NULL AND Y2025_Q3_VALUE IS NULL
+      - name: EXITED_POSITIONS_Q3_Q4
+        description: Positions completely exited between Q3 and Q4 2025
+        expr: Y2025_Q3_VALUE IS NOT NULL AND Y2025_Q4_VALUE IS NULL
+      - name: INCREASING_POSITIONS_Q3_Q4
+        description: Positions where shares increased from Q3 to Q4 2025
+        expr: Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q4_SHARES > Y2025_Q3_SHARES
+      - name: DECREASING_POSITIONS_Q3_Q4
+        description: Positions where shares decreased from Q3 to Q4 2025
+        expr: Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q4_SHARES < Y2025_Q3_SHARES
+      - name: ACTIVE_Q3_2025_POSITIONS
+        description: Positions with reported values in Q3 2025
+        expr: Y2025_Q3_VALUE IS NOT NULL
+      - name: CONSECUTIVE_INCREASES_Q2_Q3_Q4
+        description: Positions that increased in both Q2→Q3 and Q3→Q4 2025
+        expr: Y2025_Q2_SHARES IS NOT NULL AND Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q3_SHARES > Y2025_Q2_SHARES AND Y2025_Q4_SHARES > Y2025_Q3_SHARES
+      - name: CONSECUTIVE_DECREASES_Q2_Q3_Q4
+        description: Positions that decreased in both Q2→Q3 and Q3→Q4 2025
+        expr: Y2025_Q2_SHARES IS NOT NULL AND Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q3_SHARES < Y2025_Q2_SHARES AND Y2025_Q4_SHARES < Y2025_Q3_SHARES
+      - name: BRIDGEWATER_FILTER
+        description: Bridgewater Associates (Ray Dalio)
+        expr: HEDGE_FUND_NAME ILIKE '%BRIDGEWATER%'
+    metrics:
+      - name: TOTAL_AUM
+        description: Total AUM (stocks and ETFs) for Q4 2025
+        expr: SUM(Y2025_Q4_VALUE)
+      - name: TOTAL_AUM_Q3
+        description: Total AUM (stocks and ETFs) for Q3 2025
+        expr: SUM(Y2025_Q3_VALUE)
+      - name: FUND_COUNT
+        description: Count of distinct funds/managers holding a security
+        expr: COUNT(DISTINCT HEDGE_FUND_CIK)
+      - name: POSITION_COUNT
+        description: Count of distinct securities (CUSIPs) held
+        expr: COUNT(DISTINCT CUSIP)
+    primary_key:
+      columns:
+        - HEDGE_FUND_CIK
+        - CUSIP
+verified_queries:
+  # ── AUM & Fund Rankings ──
+  - name: Top 10 institutional managers by AUM
+    question: What is the total AUM in Billions for each of the top 10 institutional managers in Q4 2025?
+    sql: |-
+      SELECT hedge_fund_name, hedge_fund_cik,
+        SUM(y2025_q4_value) / 1000000000 AS total_aum_billions,
+        COUNT(DISTINCT cusip) AS num_positions
+      FROM holdings
+      WHERE y2025_q4_value IS NOT NULL
+      GROUP BY hedge_fund_name, hedge_fund_cik
+      ORDER BY total_aum_billions DESC NULLS LAST LIMIT 10
+    verified_at: 1771717998
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  - name: Top institutional asset managers by AUM
+    question: Which institutional asset managers have the largest portfolios?
+    sql: |-
+      SELECT hedge_fund_name, hedge_fund_cik,
+        SUM(y2025_q4_value) / 1000000000 AS total_aum_billions,
+        COUNT(DISTINCT cusip) AS num_positions,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE y2025_q4_value IS NOT NULL
+      GROUP BY hedge_fund_name, hedge_fund_cik
+      ORDER BY total_aum_billions DESC NULLS LAST LIMIT 20
+    verified_at: 1771864700
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Berkshire Hathaway total AUM
+    question: What is the total AUM for Berkshire Hathaway in Q4 2025?
+    sql: |-
+      SELECT hedge_fund_name,
+        SUM(y2025_q4_value) AS total_portfolio_value_q4_2025,
+        COUNT(DISTINCT cusip) AS total_positions,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name = 'BERKSHIRE HATHAWAY INC' AND y2025_q4_value IS NOT NULL
+      GROUP BY hedge_fund_name
+    verified_at: 1771863500
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  # ── Company/Fund Lookups ──
+  - name: Show Berkshire Hathaway holdings
+    question: Show me the holdings of Berkshire Hathaway
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST
+    verified_at: 1771864400
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  - name: Show Amazon holdings
+    question: Show me the holdings of Amazon
+    sql: |-
+      SELECT hedge_fund_name, company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE company_name = 'AMAZON COM INC'
+        AND title_of_class = 'COM'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 50
+    verified_at: 1771864300
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Top 20 institutional holders of Amazon
+    question: Top 20 institutional holders of Amazon across all quarters
+    sql: |-
+      SELECT hedge_fund_name, y2024_q4_shares, y2025_q1_shares, y2025_q2_shares,
+        y2025_q3_shares, y2025_q4_shares
+      FROM holdings
+      WHERE company_name = 'AMAZON COM INC'
+        AND title_of_class = 'COM' AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 20
+    verified_at: 1771858001
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Alphabet holders across share classes
+    question: Top 10 holders of Alphabet including Class A and Class C?
+    sql: |-
+      SELECT hedge_fund_name,
+        SUM(CASE WHEN title_of_class = 'CAP STK CL A' THEN y2025_q4_shares ELSE 0 END) AS class_a,
+        SUM(CASE WHEN title_of_class = 'CAP STK CL C' THEN y2025_q4_shares ELSE 0 END) AS class_c,
+        SUM(y2025_q4_shares) AS total_shares, SUM(y2025_q4_value) AS total_reported_value
+      FROM holdings
+      WHERE company_name = 'ALPHABET INC'
+        AND title_of_class IN ('CAP STK CL A', 'CAP STK CL C') AND y2025_q4_value IS NOT NULL
+      GROUP BY hedge_fund_name
+      ORDER BY total_reported_value DESC NULLS LAST LIMIT 10
+    verified_at: 1771864200
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: BlackRock Snowflake holdings
+    question: Does BlackRock hold Snowflake stock?
+    sql: |-
+      SELECT hedge_fund_name, company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name ILIKE '%BlackRock%' AND company_name ILIKE '%SNOWFLAKE%'
+        AND y2025_q4_value IS NOT NULL
+    verified_at: 1771863600
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Snowflake increasing holders
+    question: Which funds are constantly increasing their Snowflake holdings in the last three quarters?
+    sql: |-
+      SELECT hedge_fund_name, company_name, cusip, title_of_class,
+        y2025_q2_shares AS q2, y2025_q3_shares AS q3, y2025_q4_shares AS q4,
+        ROUND(100.0 * (y2025_q4_shares - y2025_q2_shares) / NULLIF(y2025_q2_shares, 0), 2) AS pct_increase
+      FROM holdings
+      WHERE company_name ILIKE '%SNOWFLAKE%'
+        AND y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+        AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+      ORDER BY y2025_q4_shares DESC NULLS LAST LIMIT 100
+    verified_at: 1771856224
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Ray Dalio public stocks
+    question: What does Ray Dalio own in Public Stocks?
+    sql: |-
+      SELECT company_name, title_of_class, cusip,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name ILIKE '%BRIDGEWATER%'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC
+    verified_at: 1771856029
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Show Egerton Capital holdings
+    question: Show the holdings of Egerton Capital
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name ILIKE '%EGERTON%'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST
+    verified_at: 1771864500
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Show Akre Capital holdings
+    question: Show the holdings of Akre Capital Management
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name ILIKE '%AKRE%'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST
+    verified_at: 1771864500
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Show Bank of America holdings
+    question: Show the holdings of Bank of America
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name ILIKE '%BANK OF AMERICA%'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 100
+    verified_at: 1771864500
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Show Barclays fund holdings
+    question: Show the holdings of Barclays
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name ILIKE '%BARCLAYS%'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 100
+    verified_at: 1771864500
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Berkshire Hathaway consecutive increases Q4 2024 to Q4 2025
+    question: What are the top 5 stocks Berkshire Hathaway has continuously increased from Q4 2024 to Q4 2025?
+    sql: |-
+      SELECT company_name, title_of_class, cusip, hedge_fund_name,
+        y2024_q4_shares AS q4_2024, y2025_q1_shares AS q1_2025,
+        y2025_q2_shares AS q2_2025, y2025_q3_shares AS q3_2025,
+        y2025_q4_shares AS q4_2025,
+        y2025_q4_shares - y2024_q4_shares AS total_increase,
+        ROUND(100.0 * (y2025_q4_shares - y2024_q4_shares) / NULLIF(y2024_q4_shares, 0), 2) AS pct_increase
+      FROM holdings
+      WHERE hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
+        AND y2024_q4_shares IS NOT NULL AND y2025_q1_shares IS NOT NULL
+        AND y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+        AND y2025_q1_shares > y2024_q4_shares AND y2025_q2_shares > y2025_q1_shares
+        AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+      ORDER BY total_increase DESC LIMIT 5
+    verified_at: 1771862432
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  # ── Widely Held & Crowded ──
+  - name: Top 10 most widely held stocks
+    question: What are the top 10 most widely held public stocks?
+    sql: |-
+      SELECT company_name, COUNT(DISTINCT hedge_fund_cik) AS fund_count
+      FROM holdings
+      WHERE y2025_q4_value IS NOT NULL
+      GROUP BY company_name
+      ORDER BY fund_count DESC NULLS LAST LIMIT 10
+    verified_at: 1771856130
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Most crowded stocks among hedge funds
+    question: Which stocks are most crowded among hedge funds?
+    sql: |-
+      SELECT company_name, cusip,
+        COUNT(DISTINCT hedge_fund_cik) AS num_funds_holding,
+        SUM(y2025_q4_value) AS total_reported_value
+      FROM holdings
+      WHERE y2025_q4_value IS NOT NULL
+      GROUP BY company_name, cusip
+      ORDER BY num_funds_holding DESC NULLS LAST LIMIT 50
+    verified_at: 1771856324
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  # ── ETF Queries ──
+  - name: Top 20 ETFs held by institutional investors
+    question: What are the top 20 ETFs held by institutional asset managers by value?
+    sql: |-
+      SELECT company_name, title_of_class, cusip, etf_ticker, etf_category,
+        COUNT(DISTINCT hedge_fund_cik) AS num_holders,
+        SUM(y2025_q4_value) AS total_reported_value
+      FROM holdings
+      WHERE is_etf = TRUE AND y2025_q4_value IS NOT NULL
+      GROUP BY company_name, title_of_class, cusip, etf_ticker, etf_category
+      ORDER BY total_reported_value DESC NULLS LAST LIMIT 20
+    verified_at: 1771863338
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: All S&P 500 ETFs
+    question: Show me all S&P 500 ETFs and their total institutional holdings
+    sql: |-
+      SELECT company_name, title_of_class, cusip, etf_ticker, etf_category,
+        COUNT(DISTINCT hedge_fund_cik) AS num_holders,
+        SUM(y2025_q4_value) AS total_reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE etf_category = 'S&P 500' AND y2025_q4_value IS NOT NULL
+      GROUP BY company_name, title_of_class, cusip, etf_ticker, etf_category
+      ORDER BY total_reported_value DESC NULLS LAST
+    verified_at: 1771864600
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Who holds SPY ETF
+    question: Which institutional asset managers hold the largest SPY positions?
+    sql: |-
+      SELECT hedge_fund_name, company_name, title_of_class, cusip, etf_ticker,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE etf_ticker = 'SPY' AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 20
+    verified_at: 1771864600
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: ETF holdings of Berkshire
+    question: What ETFs does Berkshire Hathaway hold?
+    sql: |-
+      SELECT company_name, title_of_class, cusip, etf_ticker, etf_category,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
+        AND is_etf = TRUE AND y2025_q4_value IS NOT NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST
+    verified_at: 1771864600
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  # ── Position Changes ──
+  - name: Top 25 stocks hedge funds decreased last quarter
+    question: In Q3 to Q4 2025 what are the top 25 stocks hedge funds decreased?
+    sql: |-
+      WITH top_stocks AS (
+        SELECT company_name, cusip,
+          COUNT(DISTINCT hedge_fund_cik) AS num_funds_decreased,
+          ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT hedge_fund_cik) DESC) AS rnk
+        FROM holdings
+        WHERE y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+          AND y2025_q4_shares < y2025_q3_shares
+        GROUP BY company_name, cusip
+        LIMIT 25
+      )
+      SELECT ts.rnk, h.company_name, h.cusip, ts.num_funds_decreased,
+        h.hedge_fund_name, h.y2025_q3_shares AS q3_shares, h.y2025_q4_shares AS q4_shares,
+        h.y2025_q3_shares - h.y2025_q4_shares AS shares_decreased
+      FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
+      WHERE h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
+        AND h.y2025_q4_shares < h.y2025_q3_shares
+      ORDER BY ts.rnk, shares_decreased DESC
+    verified_at: 1770384938
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  - name: Top 25 stocks consecutive increases Q2-Q3-Q4 2025
+    question: In the last three quarters, top 25 stocks hedge funds continuously increased?
+    sql: |-
+      WITH top_stocks AS (
+        SELECT company_name, cusip,
+          COUNT(DISTINCT hedge_fund_cik) AS num_funds,
+          ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT hedge_fund_cik) DESC) AS rnk
+        FROM holdings
+        WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+          AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+        GROUP BY company_name, cusip LIMIT 25
+      )
+      SELECT ts.rnk, h.company_name, h.cusip, ts.num_funds,
+        h.hedge_fund_name, h.y2025_q2_shares AS q2, h.y2025_q3_shares AS q3, h.y2025_q4_shares AS q4,
+        h.y2025_q4_shares - h.y2025_q2_shares AS total_increase
+      FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
+      WHERE h.y2025_q2_shares IS NOT NULL AND h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
+        AND h.y2025_q3_shares > h.y2025_q2_shares AND h.y2025_q4_shares > h.y2025_q3_shares
+      ORDER BY ts.rnk, total_increase DESC
+    verified_at: 1770385110
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  - name: Top 25 stocks consecutive decreases Q2-Q3-Q4 2025
+    question: In last three quarters, top 25 stocks hedge funds continuously decreased?
+    sql: |-
+      WITH top_stocks AS (
+        SELECT company_name, cusip,
+          COUNT(DISTINCT hedge_fund_cik) AS num_funds,
+          ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT hedge_fund_cik) DESC) AS rnk
+        FROM holdings
+        WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+          AND y2025_q3_shares < y2025_q2_shares AND y2025_q4_shares < y2025_q3_shares
+        GROUP BY company_name, cusip LIMIT 25
+      )
+      SELECT ts.rnk, h.company_name, h.cusip, ts.num_funds,
+        h.hedge_fund_name, h.y2025_q2_shares AS q2, h.y2025_q3_shares AS q3, h.y2025_q4_shares AS q4,
+        h.y2025_q2_shares - h.y2025_q4_shares AS total_decrease
+      FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
+      WHERE h.y2025_q2_shares IS NOT NULL AND h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
+        AND h.y2025_q3_shares < h.y2025_q2_shares AND h.y2025_q4_shares < h.y2025_q3_shares
+      ORDER BY ts.rnk, total_decrease DESC
+    verified_at: 1770385037
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  - name: New positions initiated in Q4 2025
+    question: Which new stock positions were initiated in Q4 2025?
+    sql: |-
+      SELECT hedge_fund_name, company_name, cusip, title_of_class,
+        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE y2025_q4_shares IS NOT NULL AND y2025_q3_shares IS NULL
+        AND y2025_q2_shares IS NULL
+      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 100
+    verified_at: 1771856446
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Worst performing positions last quarter
+    question: Worst-performing positions across all hedge funds last quarter
+    sql: |-
+      SELECT company_name, title_of_class, cusip, hedge_fund_name,
+        y2025_q3_value AS q3_reported_value, y2025_q4_value AS q4_reported_value,
+        y2025_q3_value - y2025_q4_value AS value_decrease,
+        ROUND(100.0 * (y2025_q3_value - y2025_q4_value) / NULLIF(y2025_q3_value, 0), 2) AS pct_decrease
+      FROM holdings
+      WHERE y2025_q3_value IS NOT NULL AND y2025_q4_value IS NOT NULL
+        AND y2025_q4_value < y2025_q3_value
+      ORDER BY pct_decrease DESC NULLS LAST LIMIT 50
+    verified_at: 1770385745
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  # ── Discovery ──
+  - name: New IPOs with highest institutional ownership
+    question: What new IPOs have the highest institutional ownership in Q4 2025?
+    sql: |-
+      SELECT company_name, cusip,
+        COUNT(DISTINCT hedge_fund_cik) AS num_holders,
+        SUM(y2025_q4_value) AS total_reported_value
+      FROM holdings
+      WHERE y2025_q4_value IS NOT NULL AND y2025_q2_value IS NULL
+        AND y2025_q3_value IS NULL
+      GROUP BY company_name, cusip
+      ORDER BY total_reported_value DESC NULLS LAST
+    verified_at: 1770385325
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Stocks under 10B accumulated by 3 plus funds
+    question: Which stocks under $10B are being quietly accumulated by 3+ funds?
+    sql: |-
+      WITH stock_totals AS (
+        SELECT company_name, cusip, SUM(y2025_q4_value) AS total_reported_value
+        FROM holdings WHERE y2025_q4_value IS NOT NULL
+        GROUP BY company_name, cusip HAVING SUM(y2025_q4_value) < 10000000000
+      ),
+      accum AS (
+        SELECT company_name, cusip, COUNT(DISTINCT hedge_fund_cik) AS num_funds
+        FROM holdings
+        WHERE y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+          AND y2025_q4_shares > y2025_q3_shares
+        GROUP BY company_name, cusip HAVING COUNT(DISTINCT hedge_fund_cik) >= 3
+      )
+      SELECT st.company_name, st.cusip, st.total_reported_value, a.num_funds
+      FROM stock_totals st JOIN accum a ON st.company_name = a.company_name AND st.cusip = a.cusip
+      ORDER BY a.num_funds DESC, st.total_reported_value DESC
+    verified_at: 1770385420
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+module_custom_instructions:
+  sql_generation: |-
+    Q4 2025 is the LATEST quarter (as of December 31, 2025). Default to Q4 2025 when no quarter specified.
+
+    DATA SCOPE: This dataset contains STOCKS and ETFs only. Options, bonds, calls, and puts are excluded.
+
+    HOLDINGS OUTPUT FORMAT (MANDATORY for single-quarter holdings queries):
+    1. Always include TITLE_OF_CLASS in SELECT.
+    2. Add literal columns: 'Q4 2025' AS PERIOD, '31 Dec 2025' AS PORTFOLIO_DATE (adjust per quarter).
+    3. Alias value columns as REPORTED_VALUE. Example: y2025_q4_value AS reported_value
+
+    Quarter end dates: Q4 2024 → 31 Dec 2024, Q1 2025 → 31 Mar 2025, Q2 2025 → 30 Jun 2025,
+    Q3 2025 → 30 Sep 2025, Q4 2025 → 31 Dec 2025.
+
+    ETF QUERIES: Use IS_ETF = TRUE to filter ETFs. For specific ETFs: etf_ticker = 'SPY'.
+    For ETF categories: etf_category = 'S&P 500'. For pure stocks (no ETFs): IS_ETF = FALSE.
+
+    FUND vs COMPANY DISAMBIGUATION:
+    HEDGE_FUND_NAME = the 13F filer (fund, asset manager, bank, etc.).
+    COMPANY_NAME = the stock/company held.
+    "Show holdings of X" / "what does X own" → filter on HEDGE_FUND_NAME.
+    "Who holds X" / "investors in X" → filter on COMPANY_NAME.
+
+    FUND NAME MATCHING (always use HEDGE_FUND_NAME):
+    Berkshire Hathaway → hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
+    BlackRock → hedge_fund_name ILIKE '%BlackRock%'
+    Bridgewater → hedge_fund_name ILIKE '%BRIDGEWATER%'
+    Citadel → hedge_fund_name ILIKE '%CITADEL ADVISORS%'
+    Vanguard → hedge_fund_name ILIKE '%VANGUARD%'
+    Bank of America → hedge_fund_name ILIKE '%BANK OF AMERICA%'
+    Morgan Stanley → hedge_fund_name ILIKE '%MORGAN STANLEY%'
+    Goldman Sachs → hedge_fund_name ILIKE '%GOLDMAN SACHS%'
+    For unknown funds: hedge_fund_name ILIKE '%<name>%'
+
+    COMPANY NAME MATCHING:
+    Amazon → company_name = 'AMAZON COM INC'
+    Apple → company_name = 'APPLE INC'
+    NVIDIA → company_name = 'NVIDIA CORPORATION'
+    Tesla → company_name = 'TESLA INC'
+    Meta → company_name = 'META PLATFORMS INC'
+    Microsoft → company_name = 'MICROSOFT CORP'
+    Alphabet → company_name = 'ALPHABET INC' (two share classes: CL A and CL C)
+    Snowflake → company_name ILIKE '%SNOWFLAKE%'
+
+    ETF TICKER MAPPING: SPY, IVV, VOO = S&P 500; QQQ = Nasdaq 100; VTI = Total Market;
+    IWM = Russell 2000; GLD = Gold; XLK = Tech; XLF = Financials; VUG = Growth; VTV = Value;
+    SCHD = Dividend; IBIT = Bitcoin; DIA = Dow Jones; AGG = Bond.
+
+    GENERAL RULES:
+    - Position changes: group by company_name AND cusip, use SHARES not VALUE columns
+    - "Widely held": COUNT(DISTINCT hedge_fund_cik)
+    - "How many stocks": COUNT(DISTINCT cusip)
+    - Default limit: 100 results unless user specifies

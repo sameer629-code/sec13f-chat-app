@@ -1,7 +1,7 @@
 """
-SEC 13F Institutional Holdings Chat
-A free public web app to explore hedge fund holdings using natural language
-Powered by Snowflake Cortex Agent
+13F Institutional Holdings Terminal
+Explore institutional investor holdings using natural language
+Powered by Snowflake Cortex Agent & Cortex Code
 """
 
 import streamlit as st
@@ -9,6 +9,7 @@ import snowflake.connector
 import pandas as pd
 import json
 import re
+from decimal import Decimal
 from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -17,7 +18,7 @@ from cryptography.hazmat.backends import default_backend
 # PAGE CONFIG
 # ============================================
 st.set_page_config(
-    page_title="SEC 13F Chat | Hedge Fund Holdings",
+    page_title="13F Institutional Holdings Terminal | Snowflake Intelligence",
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -295,6 +296,19 @@ CORTEX_AGENT = "SEC_13F_ANALYTICS.SEMANTIC_LAYER.FINAL_SEC_FILING_AGENT"
 WAREHOUSE = "SEC_13F_WAREHOUSE"
 
 # ============================================
+# DATA COVERAGE (UI + agent guardrails)
+# Keep this aligned with what is actually loaded in Snowflake.
+# ============================================
+# Data coverage: Q4 2024 through Q4 2025 (latest quarter)
+DATA_COVERAGE_LABEL = st.secrets.get("DATA_COVERAGE_LABEL", "Q4 2024 · Q1 · Q2 · Q3 · Q4 2025 ✅")
+DATA_COVERAGE_NOTE = st.secrets.get(
+    "DATA_COVERAGE_NOTE",
+    "Data coverage note: This dataset includes SEC 13F holdings for Q4 2024 through Q4 2025. "
+    "Q4 2025 is the LATEST quarter (as of December 31, 2025). Default to Q4 2025 when no quarter is specified."
+)
+Q4_2025_STATUS_TEXT = st.secrets.get("Q4_2025_STATUS_TEXT", "Q4 2025 filings are now available (filed by mid‑February 2026).")
+
+# ============================================
 # SNOWFLAKE CONNECTION (WITH KEY PAIR SUPPORT)
 # ============================================
 @st.cache_resource
@@ -354,7 +368,73 @@ def get_snowflake_connection():
         return None
 
 def safe_dataframe(rows, columns=None):
-    """Create DataFrame safely - handles column/data mismatches gracefully"""
+    """Create DataFrame safely - handles column/data mismatches gracefully.
+
+    Also normalizes dtypes for Streamlit/Arrow (e.g., Snowflake Decimal objects).
+    """
+    def _make_streamlit_arrow_safe(df: pd.DataFrame) -> pd.DataFrame:
+        """Coerce problematic object dtypes (e.g., Decimal) into Arrow-friendly types."""
+        if df is None or df.empty:
+            return df
+
+        df = df.copy()
+
+        # Streamlit/Arrow is happiest with string column names + no duplicates.
+        df.columns = [str(c) for c in df.columns]
+        if df.columns.duplicated().any():
+            seen = {}
+            new_cols = []
+            for c in df.columns:
+                if c not in seen:
+                    seen[c] = 0
+                    new_cols.append(c)
+                else:
+                    seen[c] += 1
+                    new_cols.append(f"{c}_{seen[c]}")
+            df.columns = new_cols
+
+        for col in df.columns:
+            s = df[col]
+            if s.dtype != "object":
+                continue
+
+            # Fast-ish type scan on a limited sample to avoid huge per-cell overhead.
+            sample = s.dropna()
+            if len(sample) > 2000:
+                sample = sample.iloc[:2000]
+
+            # 1) Snowflake commonly returns Decimal; Arrow chokes on Decimal inside object dtype.
+            if sample.map(lambda x: isinstance(x, Decimal)).any():
+                df[col] = s.map(lambda x: float(x) if isinstance(x, Decimal) else x)
+                s = df[col]
+                sample = s.dropna()
+                if len(sample) > 2000:
+                    sample = sample.iloc[:2000]
+
+            # 2) Nested objects (dict/list/etc) can break Arrow inference; stringify them.
+            if sample.map(lambda x: isinstance(x, (dict, list, tuple, set))).any():
+                df[col] = s.map(
+                    lambda x: json.dumps(x, default=str) if isinstance(x, (dict, list, tuple, set)) else x
+                )
+                s = df[col]
+                sample = s.dropna()
+                if len(sample) > 2000:
+                    sample = sample.iloc[:2000]
+
+            # 3) Mixed types in an object column are another frequent Arrow failure mode.
+            #    If it looks numeric-ish, coerce to numeric; otherwise coerce to string (preserving nulls).
+            if not sample.empty:
+                has_str = sample.map(lambda x: isinstance(x, str)).any()
+                has_non_str = sample.map(lambda x: not isinstance(x, str)).any()
+                if has_str and has_non_str:
+                    df[col] = s.map(lambda x: None if x is None else str(x))
+                else:
+                    # Try numeric coercion; if it produces at least some non-null values, keep it.
+                    coerced = pd.to_numeric(s, errors="coerce")
+                    if coerced.notna().any():
+                        df[col] = coerced
+        return df
+
     try:
         if not rows:
             return pd.DataFrame()
@@ -363,21 +443,54 @@ def safe_dataframe(rows, columns=None):
         if columns and data_width > 0:
             if len(columns) == data_width:
                 # Perfect match
-                return pd.DataFrame(rows, columns=columns)
+                return _make_streamlit_arrow_safe(pd.DataFrame(rows, columns=columns))
             elif len(columns) > data_width:
                 # More column names than data columns — truncate column names
-                return pd.DataFrame(rows, columns=columns[:data_width])
+                return _make_streamlit_arrow_safe(pd.DataFrame(rows, columns=columns[:data_width]))
             else:
                 # More data columns than column names — pad with generic names
                 padded = list(columns) + [f"COL_{i}" for i in range(len(columns), data_width)]
-                return pd.DataFrame(rows, columns=padded)
+                return _make_streamlit_arrow_safe(pd.DataFrame(rows, columns=padded))
         else:
-            return pd.DataFrame(rows)
+            return _make_streamlit_arrow_safe(pd.DataFrame(rows))
     except Exception:
         try:
-            return pd.DataFrame(rows)
+            return _make_streamlit_arrow_safe(pd.DataFrame(rows))
         except Exception:
             return pd.DataFrame()
+
+
+def _looks_like_placeholder_columns(columns, width: int) -> bool:
+    """
+    Detect when column names are missing / placeholders (e.g., 0..N, 1..N, 'COL_0', etc.).
+    This is common when agent result_set metadata doesn't include real names.
+    """
+    if not columns or width <= 0:
+        return True
+
+    # Normalize
+    cols = ["" if c is None else str(c).strip() for c in columns]
+    if len(cols) != width:
+        return True
+
+    if all(c == "" for c in cols):
+        return True
+
+    # Purely numeric labels (0.. or 1.. or any digits) are almost always placeholders here.
+    if all(c.isdigit() for c in cols):
+        return True
+
+    # Pandas-style generic names
+    if all(re.fullmatch(r"COL_\d+", c, flags=re.IGNORECASE) for c in cols):
+        return True
+
+    # Exactly 0..N-1 (or 1..N) stringified
+    if cols == [str(i) for i in range(width)]:
+        return True
+    if cols == [str(i) for i in range(1, width + 1)]:
+        return True
+
+    return False
 
 def run_query(conn, sql):
     """Execute SQL query"""
@@ -833,6 +946,9 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
             
             # Call the Cortex Agent API with streaming
             # Pass conversation history for context (multi-turn support)
+            # Guardrail: keep agent aligned with actual coverage to avoid "wrong quarter" answers.
+            question_for_agent = f"{DATA_COVERAGE_NOTE}\n\nUser question: {user_question}"
+
             api_result = call_cortex_agent_api(
                 account=st.secrets["SNOWFLAKE_ACCOUNT"],
                 user=st.secrets["SNOWFLAKE_USER"],
@@ -840,7 +956,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                 database=db,
                 schema=schema,
                 agent_name=agent_name,
-                question=user_question,
+                question=question_for_agent,
                 thread_id=thread_id,
                 parent_message_id=parent_message_id,
                 stream=True,
@@ -882,6 +998,20 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                         else:
                             df = safe_dataframe(rows)
                         show_data_table = True
+                        
+                        # If agent metadata didn't include real column names, rerun SQL once to get them.
+                        # This matches "Snowflake Intelligence" behavior where columns always reflect the query output.
+                        if sql and sql.strip().upper().startswith("SELECT"):
+                            width = len(rows[0]) if isinstance(rows[0], (list, tuple)) else (len(df.columns) if df is not None else 0)
+                            if _looks_like_placeholder_columns(list(df.columns) if df is not None else None, width):
+                                try:
+                                    cursor.execute(sql)
+                                    results = cursor.fetchall()
+                                    real_columns = [desc[0] for desc in cursor.description]
+                                    df = safe_dataframe(results, real_columns)
+                                except Exception:
+                                    # Keep the agent-provided df if requery fails.
+                                    pass
                 
                 # SECOND: If no agent data, try executing SQL ourselves
                 if df is None and sql and sql.strip().upper().startswith("SELECT"):
@@ -910,7 +1040,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                     database=db,
                     schema=schema,
                     agent_name=agent_name,
-                    question=user_question,
+                    question=question_for_agent,
                     thread_id=thread_id,
                     parent_message_id=parent_message_id,
                     stream=False,
@@ -923,6 +1053,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                         text = parsed.get("text", "")
                         sql = parsed.get("sql")
                         data = parsed.get("data")
+                        df = None
                         
                         # Stream the text manually
                         streamed_text = ""
@@ -932,7 +1063,36 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                             time_module.sleep(0.005)
                         response_placeholder.markdown(text)
                         
-                        if sql and sql.strip().upper().startswith("SELECT") and not data:
+                        # If the API provided a result_set, normalize it into a DataFrame.
+                        if data:
+                            try:
+                                if isinstance(data, dict) and "data" in data and "columns" in data:
+                                    df = safe_dataframe(data.get("data") or [], data.get("columns") or None)
+                                elif isinstance(data, dict) and "data" in data and "resultSetMetaData" in data:
+                                    rows = data.get("data") or []
+                                    metadata = data.get("resultSetMetaData", {}) or {}
+                                    cols = None
+                                    if "rowType" in metadata:
+                                        cols = [c.get("name") for c in metadata["rowType"]]
+                                    df = safe_dataframe(rows, cols)
+                                elif isinstance(data, list):
+                                    df = safe_dataframe(data)
+                            except Exception:
+                                df = None
+
+                        # If we got placeholder columns, rerun SQL to get real column names.
+                        if df is not None and sql and sql.strip().upper().startswith("SELECT"):
+                            try:
+                                width = len(df.columns)
+                                if _looks_like_placeholder_columns(list(df.columns), width):
+                                    cursor.execute(sql)
+                                    results = cursor.fetchall()
+                                    real_columns = [desc[0] for desc in cursor.description]
+                                    df = safe_dataframe(results, real_columns)
+                            except Exception:
+                                pass
+
+                        if sql and sql.strip().upper().startswith("SELECT") and (data is None or data == [] or df is None):
                             try:
                                 cursor.execute(sql)
                                 results = cursor.fetchall()
@@ -942,79 +1102,11 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                             except:
                                 pass
                         
-                        return {"text": text, "data": data, "sql": sql}
+                        return {"text": text, "data": df if df is not None else None, "sql": sql}
         
-        # === FALLBACK: Use Cortex Complete ===
-        response_placeholder.markdown("🔄 Using fallback method...")
-        
-        context_text = ""
-        if conversation_history and len(conversation_history) > 0:
-            recent_history = conversation_history[-10:]
-            context_parts = []
-            for msg in recent_history:
-                role = "User" if msg.get("role") == "user" else "Assistant"
-                content = msg.get("content", "")[:500]
-                context_parts.append(f"{role}: {content}")
-            context_text = "\n".join(context_parts)
-        
-        prompt = """You are an expert Snowflake SQL analyst for SEC 13F hedge fund holdings data.
-
-TABLE: SEC_13F_ANALYTICS.SEMANTIC_LAYER.HOLDINGS_DENORMALIZED
-
-COLUMNS:
-- HEDGE_FUND_NAME: Institution name. ALWAYS use ILIKE with wildcards: ILIKE '%BERKSHIRE%'
-- HEDGE_FUND_CIK: Unique fund ID
-- COMPANY_NAME: Stock name (e.g., 'APPLE INC', 'NVIDIA CORPORATION')
-- CUSIP: Stock identifier
-- SECURITY_TYPE: 'STOCK', 'ETF', or 'OPTION' - ALWAYS filter for 'STOCK' when asking about stocks!
-- "2025-Q3_VALUE": Q3 2025 value in USD (use double quotes!)
-- "2025-Q3_SHARES": Q3 2025 shares
-- "2025-Q2_VALUE", "2025-Q2_SHARES": Q2 2025 data
-- "2025-Q1_VALUE", "2024-Q4_VALUE": Earlier quarters
-
-RULES:
-1. ALWAYS use double quotes for column names with hyphens
-2. ALWAYS use ILIKE with % wildcards for name matching  
-3. ALWAYS filter SECURITY_TYPE = 'STOCK' when asking about stocks (not ETFs)
-4. Use ORDER BY DESC NULLS LAST
-5. Default LIMIT 25 unless specified
-
-""" + (f"""CONVERSATION CONTEXT:
-{context_text}
-
-""" if context_text else "") + f"""QUESTION: {user_question}
-
-Return ONLY the SQL query. No explanation. No markdown."""
-        
-        escaped_prompt = prompt.replace("'", "''")
-        complete_sql = f"SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-large', '{escaped_prompt}') AS response"
-        cursor.execute(complete_sql)
-        result = cursor.fetchone()
-        
-        if result and result[0]:
-            generated_sql = result[0].strip()
-            
-            if "```" in generated_sql:
-                match = re.search(r'```(?:sql)?\s*(SELECT.*?)```', generated_sql, re.IGNORECASE | re.DOTALL)
-                if match:
-                    generated_sql = match.group(1).strip()
-            
-            generated_sql = generated_sql.strip().rstrip(";")
-            
-            if generated_sql.upper().startswith("SELECT"):
-                # Stream "Executing query..." message
-                response_placeholder.markdown("✅ Executing query...")
-                
-                cursor.execute(generated_sql)
-                results = cursor.fetchall()
-                columns = [desc[0] for desc in cursor.description]
-                df = safe_dataframe(results, columns)
-                
-                response_placeholder.markdown(f"✅ Found {len(df)} results:")
-                return {"text": f"✅ Found {len(df)} results:", "data": df, "sql": generated_sql, "fallback": True}
-        
-        response_placeholder.markdown("⚠️ Could not process your question.")
-        return {"error": "Could not process your question. Please try rephrasing."}
+        # === NO FALLBACK: Cortex Agent is the only path ===
+        response_placeholder.markdown("⚠️ Could not reach the Cortex Agent. Please try again.")
+        return {"error": "Cortex Agent API is unavailable. Please verify SNOWFLAKE_PRIVATE_KEY is configured and the agent is deployed."}
         
     except Exception as e:
         response_placeholder.markdown(f"⚠️ Error: {str(e)}")
@@ -1105,12 +1197,29 @@ def display_snowflake_style_results(df, charts=None, key_prefix="results", page_
         start_idx = current_page * page_size
         end_idx = min(start_idx + page_size, total_rows)
         
-        # Display dataframe
-        st.dataframe(
-            df.iloc[start_idx:end_idx],
-            use_container_width=True,
-            height=min(500, (end_idx - start_idx + 1) * 35 + 50)
-        )
+        # Display dataframe (guard against Arrow serialization issues)
+        page_df = df.iloc[start_idx:end_idx]
+        table_height = min(500, (end_idx - start_idx + 1) * 35 + 50)
+        try:
+            st.dataframe(
+                page_df,
+                use_container_width=True,
+                height=table_height
+            )
+        except Exception as e:
+            # Fallback: stringify values to avoid Arrow type inference failures.
+            st.caption(f"Table render warning: {e}")
+            try:
+                safe_page_df = page_df.copy()
+                for c in safe_page_df.columns:
+                    safe_page_df[c] = safe_page_df[c].map(lambda x: None if x is None else str(x))
+                st.dataframe(
+                    safe_page_df,
+                    use_container_width=True,
+                    height=table_height
+                )
+            except Exception:
+                st.table(page_df.astype(str))
         
         # Pagination footer like Snowflake Intelligence
         if total_pages > 1:
@@ -1175,10 +1284,6 @@ def parse_agent_response(response):
             except:
                 pass
         
-        # Check for fallback flag
-        if response.get("fallback"):
-            text = "ℹ️ " + text
-        
         return text if text else "Response received.", data, sql, charts
     
     return str(response), None, None, None
@@ -1194,10 +1299,18 @@ st.markdown('''
         <span class="gold">13F</span> Institutional Holdings Terminal
     </h1>
     <p class="sub-header">
-        AI-Powered Analysis of SEC 13F Filings from Institutional Investors
+        <a href="https://www.snowflake.com/en/data-cloud/cortex/" target="_blank"
+           style="color: #60a5fa; text-decoration: none; font-weight: 500;">Snowflake Intelligence</a>&#8209;Powered
+        Analysis of SEC 13F Filings from Institutional Investors
     </p>
-    <div style="display: flex; justify-content: center; margin-top: 0.5rem;">
-        <span style="color: #6b7280; font-size: 0.85rem;">❄️ <span style="color: #9ca3af;">Powered by Snowflake Cortex</span></span>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 0.5rem;">
+        <span style="color: #6b7280; font-size: 0.85rem;">❄️ <span style="color: #9ca3af;">Powered by Snowflake Cortex Agent &amp; Cortex Code</span></span>
+    </div>
+    <div style="margin-top: 0.75rem; display: flex; justify-content: center;">
+        <span style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px;
+            padding: 6px 14px; font-size: 0.75rem; color: #d4a017; font-family: 'Inter', sans-serif; letter-spacing: 0.2px;">
+            ⚠️ SEC 13F Coverage: Stocks &amp; ETFs Only · Options, Bonds &amp; Cash Holdings Are Excluded
+        </span>
     </div>
 </div>
 ''', unsafe_allow_html=True)
@@ -1246,21 +1359,21 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     # Data Coverage & Technology (integrated, no headings)
-    st.markdown("""
+    st.markdown(f"""
     <div style="font-size: 0.8rem; color: #9ca3af; line-height: 1.9; margin-bottom: 1rem;">
         <div>📊 <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&CIK=&type=13F&company=&dateb=&owner=include&count=40" target="_blank" style="color: #60a5fa; text-decoration: none;">SEC EDGAR 13F Filings</a></div>
-        <div>📅 Q4 2024 · Q1 · Q2 · Q3 2025 · <span style="color: #fbbf24;">Q4 🔜</span></div>
+        <div>📅 {DATA_COVERAGE_LABEL}</div>
         <div>📁 13M+ holdings · 8,300+ institutions</div>
-        <div>💰 Institutions >$100M AUM</div>
+        <div>💰 Institutions &gt;$100M AUM</div>
     </div>
     <div style="font-size: 0.75rem; color: #6b7280; line-height: 1.6; margin-bottom: 1rem;">
-        ❄️ Snowflake Cortex · 🤖 Text-to-SQL · 🔗 REST API
+        ❄️ Snowflake Cortex Agent · 🧠 Cortex Code · 🔗 REST API
     </div>
     """, unsafe_allow_html=True)
     
     # Clickable quarter explanation
     with st.expander("ℹ️ What do these quarters mean?"):
-        st.markdown("""
+        st.markdown(f"""
         **13F filings report holdings at quarter-end:**
         
         | Quarter | Holdings As Of | Filed By |
@@ -1269,23 +1382,23 @@ with st.sidebar:
         | **Q1 2025** | Mar 31, 2025 | May 15, 2025 |
         | **Q2 2025** | Jun 30, 2025 | Aug 14, 2025 |
         | **Q3 2025** | Sep 30, 2025 | Nov 14, 2025 |
-        | **Q4 2025** | Dec 31, 2025 | *Feb 2026* 🔜 |
+        | **Q4 2025** | Dec 31, 2025 | Feb 14, 2026 (typical) |
         
-        *Example: Q2 2025 shows positions held on June 30, 2025*
+        *Example: Q3 2025 shows positions held on Sep 30, 2025*
         
-        ⏳ **Q4 2025 data** will be available by end of February 2026
+        {Q4_2025_STATUS_TEXT}
         """, unsafe_allow_html=True)
     
     st.markdown('<p class="sidebar-title">Common Prompts</p>', unsafe_allow_html=True)
     
     # Verified example prompts
     example_prompts = [
-        "In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds increased their positions consecutively?",
-        "In the last four quarters (Q4 2024 to Q3 2025), what are the top 10 stocks on which hedge funds increased their portfolio consecutively?",
-        "What are the top 5 stocks in which Berkshire Hathaway has continuously been increasing its holding position in the last four quarters (Q4 2024 to Q3 2025)?",
+        "In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds/institutional asset managers increased their positions consecutively?",
+        "In the last five quarters (Q4 2024 to Q4 2025), what are the top 10 stocks on which hedge funds/institutional asset managers increased their portfolio consecutively?",
+        "What are the top 5 stocks in which Berkshire Hathaway has continuously been increasing its holding position in the last five quarters (Q4 2024 to Q4 2025)?",
         "Which funds are constantly increasing their Snowflake stock holdings in the last three quarters?",
         "Which stocks had a 10x increase in institutional holders in one quarter?",
-        "As per the latest filing of Q3 2025, what is the total AUM in Billions for each of the top 10 institutional managers (Hedge Funds)?",
+        "As per the latest filing of Q4 2025, what is the total AUM in Billions for each of the top 10 institutional managers (Hedge Funds)?",
         "As per the latest filings, what are the top 10 most widely held stocks?",
         "Which companies have the highest number of institutional investors holding their stock?",
     ]
@@ -1318,7 +1431,12 @@ with chat_container:
                 display_snowflake_style_results(msg_data, msg_charts, key_prefix=f"hist_{i}")
 
 # Fixed chat input at bottom (Streamlit's native chat_input)
-user_input = st.chat_input("Ask about hedge fund holdings... e.g., What are the top 10 holdings of Berkshire Hathaway?")
+# Show detailed placeholder only on first interaction; keep it minimal after that
+if not st.session_state.messages:
+    _placeholder = "Ask about institutional holdings... e.g., What are the top 10 holdings of Berkshire Hathaway?"
+else:
+    _placeholder = "Ask a follow-up question..."
+user_input = st.chat_input(_placeholder)
 
 # Handle pending questions from sidebar
 if "pending_question" in st.session_state:
