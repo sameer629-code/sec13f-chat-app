@@ -667,7 +667,7 @@ def stream_cortex_response(response_stream, placeholder):
 .thinking-spinner {
     width: 16px; height: 16px;
     border: 2px solid #334155;
-    border-top: 2px solid #3b82f6;
+    border-top: 2px solid #29B5E8;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -723,7 +723,7 @@ def stream_cortex_response(response_stream, placeholder):
 .thinking-spinner {{
     width: 16px; height: 16px;
     border: 2px solid #334155;
-    border-top: 2px solid #3b82f6;
+    border-top: 2px solid #29B5E8;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }}
@@ -789,7 +789,7 @@ def stream_cortex_response(response_stream, placeholder):
 .thinking-spinner {{
     width: 16px; height: 16px;
     border: 2px solid #334155;
-    border-top: 2px solid #3b82f6;
+    border-top: 2px solid #29B5E8;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }}
@@ -1300,11 +1300,11 @@ st.markdown('''
     </h1>
     <p class="sub-header">
         <a href="https://www.snowflake.com/en/data-cloud/cortex/" target="_blank"
-           style="color: #60a5fa; text-decoration: none; font-weight: 500;">Snowflake Intelligence</a>&#8209;Powered
+           style="color: #29B5E8; text-decoration: none; font-weight: 500;">Snowflake Intelligence</a>&#8209;Powered
         Analysis of SEC 13F Filings from Institutional Investors
     </p>
     <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 0.5rem;">
-        <span style="color: #6b7280; font-size: 0.85rem;">❄️ <span style="color: #9ca3af;">Powered by Snowflake Cortex Agent &amp; Cortex Code</span></span>
+        <span style="color: #6b7280; font-size: 0.85rem;">❄️ Powered by <span style="color: #29B5E8; font-weight: 500;">Snowflake</span> <span style="color: #9ca3af;">Cortex Agent &amp; Cortex Code</span></span>
     </div>
     <div style="margin-top: 0.75rem; display: flex; justify-content: center;">
         <span style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px;
@@ -1344,7 +1344,7 @@ with st.sidebar:
         st.markdown('''
         <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem;">
             <span class="status-connected"></span>
-            <span style="color: #a7f3d0; font-size: 0.85rem; font-weight: 500;">Connected to Snowflake</span>
+            <span style="color: #a7f3d0; font-size: 0.85rem; font-weight: 500;">Connected to <span style="color: #29B5E8; font-weight: 600;">Snowflake</span></span>
         </div>
         ''', unsafe_allow_html=True)
     else:
@@ -1367,7 +1367,7 @@ with st.sidebar:
         <div>💰 Institutions &gt;$100M AUM</div>
     </div>
     <div style="font-size: 0.75rem; color: #6b7280; line-height: 1.6; margin-bottom: 1rem;">
-        ❄️ Snowflake Cortex Agent · 🧠 Cortex Code · 🔗 REST API
+        ❄️ <span style="color: #29B5E8; font-weight: 500;">Snowflake</span> Cortex Agent · 🧠 Cortex Code · 🔗 REST API
     </div>
     """, unsafe_allow_html=True)
     
