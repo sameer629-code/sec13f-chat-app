@@ -1532,10 +1532,10 @@ with st.sidebar:
     
     # Verified example prompts
     example_prompts = [
-        "In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds/institutional asset managers increased their positions consecutively?",
-        "In the last five quarters (Q4 2024 to Q4 2025), what are the top 10 stocks on which hedge funds/institutional asset managers increased their portfolio consecutively?",
-        "What are the top 5 stocks in which Berkshire Hathaway has continuously been increasing its holding position in the last five quarters (Q4 2024 to Q4 2025)?",
-        "Which funds are constantly increasing their Snowflake stock holdings in the last three quarters?",
+        "What are the top 5 stocks where the most hedge funds/institutional asset managers increased their share positions consecutively in Q2, Q3, and Q4 2025?",
+        "What are the top 10 stocks where hedge funds increased their share positions consecutively across Q4 2024, Q1 2025, Q2 2025, Q3 2025, and Q4 2025?",
+        "What are the top 5 stocks in which Berkshire Hathaway has continuously been increasing its holding position from Q4 2024 through Q4 2025?",
+        "Which funds are constantly increasing their Snowflake stock holdings in Q2, Q3, and Q4 2025?",
         "Which stocks had a 10x increase in institutional holders in one quarter?",
         "As per the latest filing of Q4 2025, what is the total AUM in Billions for each of the top 10 institutional managers (Hedge Funds)?",
         "As per the latest filings, what are the top 10 most widely held stocks?",

@@ -332,7 +332,7 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: Snowflake increasing holders
-    question: Which funds are constantly increasing their Snowflake holdings in the last three quarters?
+    question: Which funds are constantly increasing their Snowflake holdings in Q2, Q3, and Q4 2025?
     sql: |-
       SELECT hedge_fund_name, company_name, cusip, title_of_class,
         y2025_q2_shares AS q2, y2025_q3_shares AS q3, y2025_q4_shares AS q4,
@@ -509,8 +509,8 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   # -- Consecutive Position Changes (STOCKS ONLY - IS_ETF = FALSE) --
-  - name: Top 10 stocks with 5-quarter consecutive increases
-    question: In the last five quarters (Q4 2024 to Q4 2025), what are the top 10 stocks on which hedge funds/institutional asset managers increased their portfolio consecutively?
+  - name: Top 10 stocks with consecutive increases Q4 2024 through Q4 2025
+    question: What are the top 10 stocks where hedge funds increased their share positions consecutively across Q4 2024, Q1 2025, Q2 2025, Q3 2025, and Q4 2025?
     sql: |-
       SELECT company_name, cusip, title_of_class,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
@@ -526,12 +526,12 @@ verified_queries:
     verified_at: 1771868000
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
-  - name: Top 5 stocks with 2-quarter consecutive increases
-    question: In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds/institutional asset managers increased their positions consecutively?
+  - name: Top 5 stocks with consecutive increases in Q2 Q3 Q4 2025
+    question: What are the top 5 stocks where the most hedge funds increased their share positions consecutively in Q2, Q3, and Q4 2025?
     sql: |-
       SELECT company_name, cusip, title_of_class,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
-        'Q2-Q3-Q4 2025' AS period
+        'Q2->Q3->Q4 2025' AS period
       FROM holdings
       WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
         AND y2025_q3_shares > y2025_q2_shares
@@ -567,7 +567,7 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
   - name: Top 25 stocks consecutive increases Q2-Q3-Q4 2025
-    question: In the last three quarters, top 25 stocks hedge funds continuously increased?
+    question: What are the top 25 stocks hedge funds continuously increased in Q2, Q3, and Q4 2025?
     sql: |-
       WITH top_stocks AS (
         SELECT company_name, cusip,
@@ -591,7 +591,7 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
   - name: Top 25 stocks consecutive decreases Q2-Q3-Q4 2025
-    question: In last three quarters, top 25 stocks hedge funds continuously decreased?
+    question: What are the top 25 stocks hedge funds continuously decreased in Q2, Q3, and Q4 2025?
     sql: |-
       WITH top_stocks AS (
         SELECT company_name, cusip,
@@ -752,10 +752,13 @@ module_custom_instructions:
     - Quarter-over-quarter share comparisons are safe and accurate.
 
     CONSECUTIVE POSITION CHANGE QUERIES (top N stocks funds increased/decreased):
-    - "Last two quarters consecutively" means TWO transitions: Q2->Q3 AND Q3->Q4.
+    - "Q2, Q3, Q4" or "last two quarters" = TWO transitions: Q2->Q3 AND Q3->Q4.
       Requires: y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
-    - "Last three quarters" means THREE transitions: Q1->Q2, Q2->Q3, Q3->Q4.
-    - "Last five quarters" means FOUR transitions: Q4'24->Q1'25, Q1->Q2, Q2->Q3, Q3->Q4.
+    - "Q1, Q2, Q3, Q4" or "last three quarters" = THREE transitions: Q1->Q2, Q2->Q3, Q3->Q4.
+    - "Q4'24 through Q4'25" or "last five quarters" = FOUR transitions: Q4'24->Q1, Q1->Q2, Q2->Q3, Q3->Q4.
+    - For follow-up questions about a specific stock from these results, ALWAYS keep
+      the same consecutive filters. E.g. if user first asks about Q2->Q3->Q4 top stocks
+      and then says "more details on Amazon", apply the SAME Q2->Q3 AND Q3->Q4 conditions.
     - GROUP BY must ONLY contain company_name, cusip, title_of_class.
       NEVER add shares or value columns to GROUP BY - that breaks the COUNT aggregation.
     - Use COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing to count how many funds increased.
