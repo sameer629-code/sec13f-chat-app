@@ -526,18 +526,20 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
   - name: Top 5 stocks with 2-quarter consecutive increases
-    question: In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds increased their positions consecutively?
+    question: In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds/institutional asset managers increased their positions consecutively?
     sql: |-
       SELECT company_name, cusip, title_of_class,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
-        SUM(y2025_q4_value) AS total_q4_value
+        SUM(y2025_q4_value) AS total_q4_value,
+        'Q3-Q4 2025' AS period
       FROM holdings
-      WHERE y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+      WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+        AND y2025_q3_shares > y2025_q2_shares
         AND y2025_q4_shares > y2025_q3_shares
         AND is_etf = FALSE
       GROUP BY company_name, cusip, title_of_class
       ORDER BY num_funds_increasing DESC LIMIT 5
-    verified_at: 1771868000
+    verified_at: 1772600000
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
   # ── Position Changes ──
@@ -744,6 +746,16 @@ module_custom_instructions:
     - For "bottom" / "smallest" funds: use ORDER BY total_aum ASC with the filters above.
     - For "top" / "largest" funds: use ORDER BY total_aum DESC with the filters above.
     - NEVER return funds with 0 AUM or empty/NULL names in ranking results.
+
+    CONSECUTIVE POSITION CHANGE QUERIES (top N stocks funds increased/decreased):
+    - "Last two quarters consecutively" means TWO transitions: Q2→Q3 AND Q3→Q4.
+      Requires: y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+    - "Last three quarters" means THREE transitions: Q1→Q2, Q2→Q3, Q3→Q4.
+    - "Last five quarters" means FOUR transitions: Q4'24→Q1'25, Q1→Q2, Q2→Q3, Q3→Q4.
+    - GROUP BY must ONLY contain company_name, cusip, title_of_class.
+      NEVER add shares or value columns to GROUP BY — that breaks the COUNT aggregation.
+    - Use COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing to count how many funds increased.
+    - Follow the verified query patterns EXACTLY — do NOT add extra columns to SELECT or GROUP BY.
 
     GENERAL RULES:
     - Position changes: group by company_name AND cusip, use SHARES not VALUE columns
