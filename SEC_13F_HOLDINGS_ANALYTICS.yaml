@@ -3,6 +3,7 @@ description: >-
   SEC 13F Holdings Analytics across Q4 2024 through Q4 2025. Contains STOCKS and ETFs only
   (options, bonds, calls, and puts are excluded). Q4 2025 is the LATEST quarter
   (as of December 31, 2025). Default to Q4 2025 when no quarter is specified.
+  Share counts are split-adjusted so quarter-over-quarter comparisons are accurate.
 tables:
   - name: HOLDINGS
     description: Institutional investor stock/ETF holdings with pivoted quarterly columns
@@ -168,10 +169,10 @@ tables:
         description: Positions with reported values in Q3 2025
         expr: Y2025_Q3_VALUE IS NOT NULL
       - name: CONSECUTIVE_INCREASES_Q2_Q3_Q4
-        description: Positions that increased in both Q2→Q3 and Q3→Q4 2025
+        description: Positions that increased in both Q2->Q3 and Q3->Q4 2025
         expr: Y2025_Q2_SHARES IS NOT NULL AND Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q3_SHARES > Y2025_Q2_SHARES AND Y2025_Q4_SHARES > Y2025_Q3_SHARES
       - name: CONSECUTIVE_DECREASES_Q2_Q3_Q4
-        description: Positions that decreased in both Q2→Q3 and Q3→Q4 2025
+        description: Positions that decreased in both Q2->Q3 and Q3->Q4 2025
         expr: Y2025_Q2_SHARES IS NOT NULL AND Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q3_SHARES < Y2025_Q2_SHARES AND Y2025_Q4_SHARES < Y2025_Q3_SHARES
       - name: BRIDGEWATER_FILTER
         description: Bridgewater Associates (Ray Dalio)
@@ -194,7 +195,7 @@ tables:
         - HEDGE_FUND_CIK
         - CUSIP
 verified_queries:
-  # ── AUM & Fund Rankings ──
+  # -- AUM & Fund Rankings --
   - name: Top 10 institutional managers by AUM
     question: What is the total AUM in Billions for each of the top 10 institutional managers in Q4 2025?
     sql: |-
@@ -249,7 +250,7 @@ verified_queries:
     verified_at: 1771863500
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
-  # ── Company/Fund Lookups ──
+  # -- Company/Fund Lookups --
   - name: Show Berkshire Hathaway holdings
     question: Show me the holdings of Berkshire Hathaway
     sql: |-
@@ -429,7 +430,7 @@ verified_queries:
     verified_at: 1771862432
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
-  # ── Widely Held & Crowded ──
+  # -- Widely Held & Crowded --
   - name: Top 10 most widely held stocks
     question: What are the top 10 most widely held public stocks?
     sql: |-
@@ -454,7 +455,7 @@ verified_queries:
     verified_at: 1771856324
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
-  # ── ETF Queries ──
+  # -- ETF Queries --
   - name: Top 20 ETFs held by institutional investors
     question: What are the top 20 ETFs held by institutional asset managers by value?
     sql: |-
@@ -507,7 +508,7 @@ verified_queries:
     verified_at: 1771864600
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
-  # ── Consecutive Position Changes (STOCKS ONLY — IS_ETF = FALSE) ──
+  # -- Consecutive Position Changes (STOCKS ONLY - IS_ETF = FALSE) --
   - name: Top 10 stocks with 5-quarter consecutive increases
     question: In the last five quarters (Q4 2024 to Q4 2025), what are the top 10 stocks on which hedge funds/institutional asset managers increased their portfolio consecutively?
     sql: |-
@@ -542,7 +543,7 @@ verified_queries:
     verified_at: 1772600000
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
-  # ── Position Changes ──
+  # -- Position Changes --
   - name: Top 25 stocks hedge funds decreased last quarter
     question: In Q3 to Q4 2025 what are the top 25 stocks hedge funds decreased?
     sql: |-
@@ -641,7 +642,7 @@ verified_queries:
     verified_at: 1770385745
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
-  # ── Discovery ──
+  # -- Discovery --
   - name: New IPOs with highest institutional ownership
     question: What new IPOs have the highest institutional ownership in Q4 2025?
     sql: |-
@@ -679,25 +680,25 @@ verified_queries:
     use_as_onboarding_question: true
 module_custom_instructions:
   sql_generation: |-
-    ═══ RULE #1 — STOCK vs ETF FILTERING (HIGHEST PRIORITY) ═══
+    === RULE 1 - STOCK vs ETF FILTERING (HIGHEST PRIORITY) ===
     EVERY query MUST apply the correct IS_ETF filter based on what the user asked:
 
     A) User says "stocks", "top stocks", "public stocks", "companies", "shares",
        "stock positions", or "increased/decreased stocks":
-       → ALWAYS add WHERE IS_ETF = FALSE. This EXCLUDES ETFs. NO EXCEPTIONS.
+       -> ALWAYS add WHERE IS_ETF = FALSE. This EXCLUDES ETFs. NO EXCEPTIONS.
 
     B) User says "holdings" (e.g. "show holdings of X", "what does X own"):
-       → Do NOT filter on IS_ETF. Show BOTH stocks and ETFs together.
+       -> Do NOT filter on IS_ETF. Show BOTH stocks and ETFs together.
 
     C) User says "ETFs", "index funds", or a specific ETF name/ticker:
-       → Use WHERE IS_ETF = TRUE (or etf_ticker = 'SPY', etf_category = 'S&P 500').
+       -> Use WHERE IS_ETF = TRUE (or etf_ticker = 'SPY', etf_category = 'S&P 500').
 
     D) User says "stocks and ETFs" or "both stocks and ETFs":
-       → Include IS_ETF in SELECT, add CASE WHEN IS_ETF THEN 'ETF' ELSE 'Stock' END AS security_type_label,
+       -> Include IS_ETF in SELECT, add CASE WHEN IS_ETF THEN 'ETF' ELSE 'Stock' END AS security_type_label,
          ORDER BY IS_ETF ASC (stocks first, then ETFs).
 
     REMEMBER: "top 10 stocks" means IS_ETF = FALSE. "top 10 holdings" means no filter.
-    ═══════════════════════════════════════════════════════════
+    =============================================================
 
     Q4 2025 is the LATEST quarter (as of December 31, 2025). Default to Q4 2025 when no quarter specified.
 
@@ -706,35 +707,35 @@ module_custom_instructions:
     2. Add literal columns: 'Q4 2025' AS PERIOD, '31 Dec 2025' AS PORTFOLIO_DATE (adjust per quarter).
     3. Alias value columns as REPORTED_VALUE. Example: y2025_q4_value AS reported_value
 
-    Quarter end dates: Q4 2024 → 31 Dec 2024, Q1 2025 → 31 Mar 2025, Q2 2025 → 30 Jun 2025,
-    Q3 2025 → 30 Sep 2025, Q4 2025 → 31 Dec 2025.
+    Quarter end dates: Q4 2024 -> 31 Dec 2024, Q1 2025 -> 31 Mar 2025, Q2 2025 -> 30 Jun 2025,
+    Q3 2025 -> 30 Sep 2025, Q4 2025 -> 31 Dec 2025.
 
     FUND vs COMPANY DISAMBIGUATION:
     HEDGE_FUND_NAME = the 13F filer (fund, asset manager, bank, etc.).
     COMPANY_NAME = the stock/company held.
-    "Show holdings of X" / "what does X own" → filter on HEDGE_FUND_NAME.
-    "Who holds X" / "investors in X" → filter on COMPANY_NAME.
+    "Show holdings of X" / "what does X own" -> filter on HEDGE_FUND_NAME.
+    "Who holds X" / "investors in X" -> filter on COMPANY_NAME.
 
     FUND NAME MATCHING (always use HEDGE_FUND_NAME):
-    Berkshire Hathaway → hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
-    BlackRock → hedge_fund_name ILIKE '%BlackRock%'
-    Bridgewater → hedge_fund_name ILIKE '%BRIDGEWATER%'
-    Citadel → hedge_fund_name ILIKE '%CITADEL ADVISORS%'
-    Vanguard → hedge_fund_name ILIKE '%VANGUARD%'
-    Bank of America → hedge_fund_name ILIKE '%BANK OF AMERICA%'
-    Morgan Stanley → hedge_fund_name ILIKE '%MORGAN STANLEY%'
-    Goldman Sachs → hedge_fund_name ILIKE '%GOLDMAN SACHS%'
+    Berkshire Hathaway -> hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
+    BlackRock -> hedge_fund_name ILIKE '%BlackRock%'
+    Bridgewater -> hedge_fund_name ILIKE '%BRIDGEWATER%'
+    Citadel -> hedge_fund_name ILIKE '%CITADEL ADVISORS%'
+    Vanguard -> hedge_fund_name ILIKE '%VANGUARD%'
+    Bank of America -> hedge_fund_name ILIKE '%BANK OF AMERICA%'
+    Morgan Stanley -> hedge_fund_name ILIKE '%MORGAN STANLEY%'
+    Goldman Sachs -> hedge_fund_name ILIKE '%GOLDMAN SACHS%'
     For unknown funds: hedge_fund_name ILIKE '%<name>%'
 
     COMPANY NAME MATCHING:
-    Amazon → company_name = 'AMAZON COM INC'
-    Apple → company_name = 'APPLE INC'
-    NVIDIA → company_name = 'NVIDIA CORPORATION'
-    Tesla → company_name = 'TESLA INC'
-    Meta → company_name = 'META PLATFORMS INC'
-    Microsoft → company_name = 'MICROSOFT CORP'
-    Alphabet → company_name = 'ALPHABET INC' (two share classes: CL A and CL C)
-    Snowflake → company_name ILIKE '%SNOWFLAKE%'
+    Amazon -> company_name = 'AMAZON COM INC'
+    Apple -> company_name = 'APPLE INC'
+    NVIDIA -> company_name = 'NVIDIA CORPORATION'
+    Tesla -> company_name = 'TESLA INC'
+    Meta -> company_name = 'META PLATFORMS INC'
+    Microsoft -> company_name = 'MICROSOFT CORP'
+    Alphabet -> company_name = 'ALPHABET INC' (two share classes: CL A and CL C)
+    Snowflake -> company_name ILIKE '%SNOWFLAKE%'
 
     ETF TICKER MAPPING: SPY, IVV, VOO = S&P 500; QQQ = Nasdaq 100; VTI = Total Market;
     IWM = Russell 2000; GLD = Gold; XLK = Tech; XLF = Financials; VUG = Growth; VTV = Value;
@@ -747,18 +748,22 @@ module_custom_instructions:
     - For "top" / "largest" funds: use ORDER BY total_aum DESC with the filters above.
     - NEVER return funds with 0 AUM or empty/NULL names in ranking results.
 
+    STOCK SPLIT ADJUSTMENT:
+    - Share columns are already split-adjusted in the data. No manual adjustment needed.
+    - Quarter-over-quarter share comparisons are safe and accurate.
+
     CONSECUTIVE POSITION CHANGE QUERIES (top N stocks funds increased/decreased):
-    - "Last two quarters consecutively" means TWO transitions: Q2→Q3 AND Q3→Q4.
+    - "Last two quarters consecutively" means TWO transitions: Q2->Q3 AND Q3->Q4.
       Requires: y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
-    - "Last three quarters" means THREE transitions: Q1→Q2, Q2→Q3, Q3→Q4.
-    - "Last five quarters" means FOUR transitions: Q4'24→Q1'25, Q1→Q2, Q2→Q3, Q3→Q4.
+    - "Last three quarters" means THREE transitions: Q1->Q2, Q2->Q3, Q3->Q4.
+    - "Last five quarters" means FOUR transitions: Q4'24->Q1'25, Q1->Q2, Q2->Q3, Q3->Q4.
     - GROUP BY must ONLY contain company_name, cusip, title_of_class.
-      NEVER add shares or value columns to GROUP BY — that breaks the COUNT aggregation.
+      NEVER add shares or value columns to GROUP BY - that breaks the COUNT aggregation.
     - Use COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing to count how many funds increased.
-    - Follow the verified query patterns EXACTLY — do NOT add extra columns to SELECT or GROUP BY.
+    - Follow the verified query patterns EXACTLY - do NOT add extra columns to SELECT or GROUP BY.
 
     GENERAL RULES:
     - Position changes: group by company_name AND cusip, use SHARES not VALUE columns
     - "Widely held": COUNT(DISTINCT hedge_fund_cik)
     - "How many stocks": COUNT(DISTINCT cusip)
-    - Default limit: 100 results unless user specifies
+    - Default limit: 1000 results unless user specifies
