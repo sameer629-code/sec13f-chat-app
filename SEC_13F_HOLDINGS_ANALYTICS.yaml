@@ -30,12 +30,6 @@ tables:
           e.g. BERKSHIRE HATHAWAY INC, BLACKROCK INC, VANGUARD GROUP INC.
         expr: HEDGE_FUND_NAME
         data_type: VARCHAR(500)
-      - name: SECURITY_TYPE
-        description: Always 'STOCK' in this dataset. ETFs are also classified as STOCK; use IS_ETF to distinguish.
-        expr: SECURITY_TYPE
-        data_type: VARCHAR(6)
-        sample_values:
-          - STOCK
       - name: IS_ETF
         description: >-
           TRUE if the security is an ETF/index fund. Use IS_ETF = TRUE to filter ETFs
@@ -127,22 +121,6 @@ tables:
         description: Percentage change in shares from Q3 to Q4 2025
         expr: (Y2025_Q4_SHARES - Y2025_Q3_SHARES) * 100.0 / NULLIF(Y2025_Q3_SHARES, 0)
         data_type: NUMBER(28,6)
-      - name: Q3_TO_Q4_VALUE_CHANGE
-        description: Absolute change in reported value from Q3 to Q4 2025
-        expr: Y2025_Q4_VALUE - Y2025_Q3_VALUE
-        data_type: NUMBER(26,3)
-      - name: Q3_TO_Q4_VALUE_PCT_CHANGE
-        description: Percentage change in reported value from Q3 to Q4 2025
-        expr: (Y2025_Q4_VALUE - Y2025_Q3_VALUE) * 100.0 / NULLIF(Y2025_Q3_VALUE, 0)
-        data_type: NUMBER(38,9)
-      - name: Q2_TO_Q3_SHARES_CHANGE
-        description: Absolute change in shares from Q2 to Q3 2025
-        expr: Y2025_Q3_SHARES - Y2025_Q2_SHARES
-        data_type: NUMBER(19,0)
-      - name: Q1_TO_Q4_SHARES_PCT_CHANGE
-        description: Percentage change in shares from Q1 to Q4 2025 (full year)
-        expr: (Y2025_Q4_SHARES - Y2025_Q1_SHARES) * 100.0 / NULLIF(Y2025_Q1_SHARES, 0)
-        data_type: NUMBER(28,6)
     filters:
       - name: ETF_ONLY
         description: Only ETF/index fund holdings
@@ -174,16 +152,10 @@ tables:
       - name: CONSECUTIVE_DECREASES_Q2_Q3_Q4
         description: Positions that decreased in both Q2->Q3 and Q3->Q4 2025
         expr: Y2025_Q2_SHARES IS NOT NULL AND Y2025_Q3_SHARES IS NOT NULL AND Y2025_Q4_SHARES IS NOT NULL AND Y2025_Q3_SHARES < Y2025_Q2_SHARES AND Y2025_Q4_SHARES < Y2025_Q3_SHARES
-      - name: BRIDGEWATER_FILTER
-        description: Bridgewater Associates (Ray Dalio)
-        expr: HEDGE_FUND_NAME ILIKE '%BRIDGEWATER%'
     metrics:
       - name: TOTAL_AUM
         description: Total AUM (stocks and ETFs) for Q4 2025
         expr: SUM(Y2025_Q4_VALUE)
-      - name: TOTAL_AUM_Q3
-        description: Total AUM (stocks and ETFs) for Q3 2025
-        expr: SUM(Y2025_Q3_VALUE)
       - name: FUND_COUNT
         description: Count of distinct funds/managers holding a security
         expr: COUNT(DISTINCT HEDGE_FUND_CIK)
@@ -209,20 +181,6 @@ verified_queries:
     verified_at: 1771717998
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
-  - name: Top institutional asset managers by AUM
-    question: Which institutional asset managers have the largest portfolios?
-    sql: |-
-      SELECT hedge_fund_name, hedge_fund_cik,
-        SUM(y2025_q4_value) / 1000000000 AS total_aum_billions,
-        COUNT(DISTINCT cusip) AS num_positions,
-        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
-      FROM holdings
-      WHERE y2025_q4_value > 0 AND hedge_fund_name IS NOT NULL
-      GROUP BY hedge_fund_name, hedge_fund_cik
-      ORDER BY total_aum_billions DESC NULLS LAST LIMIT 20
-    verified_at: 1771864700
-    verified_by: Sameer Shahzad
-    use_as_onboarding_question: false
   - name: Bottom 100 institutional managers by AUM
     question: Show me the bottom 100 hedge funds by AUM
     sql: |-
@@ -249,7 +207,7 @@ verified_queries:
       GROUP BY hedge_fund_name
     verified_at: 1771863500
     verified_by: Sameer Shahzad
-    use_as_onboarding_question: true
+    use_as_onboarding_question: false
   # -- Company/Fund Lookups --
   - name: Show Berkshire Hathaway holdings
     question: Show me the holdings of Berkshire Hathaway
@@ -371,19 +329,6 @@ verified_queries:
     verified_at: 1771864500
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
-  - name: Show Akre Capital holdings
-    question: Show the holdings of Akre Capital Management
-    sql: |-
-      SELECT company_name, cusip, title_of_class,
-        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
-        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
-      FROM holdings
-      WHERE hedge_fund_name ILIKE '%AKRE%'
-        AND y2025_q4_value IS NOT NULL
-      ORDER BY y2025_q4_value DESC NULLS LAST
-    verified_at: 1771864500
-    verified_by: Sameer Shahzad
-    use_as_onboarding_question: false
   - name: Show Bank of America holdings
     question: Show the holdings of Bank of America
     sql: |-
@@ -392,19 +337,6 @@ verified_queries:
         'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
       FROM holdings
       WHERE hedge_fund_name ILIKE '%BANK OF AMERICA%'
-        AND y2025_q4_value IS NOT NULL
-      ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 100
-    verified_at: 1771864500
-    verified_by: Sameer Shahzad
-    use_as_onboarding_question: false
-  - name: Show Barclays fund holdings
-    question: Show the holdings of Barclays
-    sql: |-
-      SELECT company_name, cusip, title_of_class,
-        y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
-        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
-      FROM holdings
-      WHERE hedge_fund_name ILIKE '%BARCLAYS%'
         AND y2025_q4_value IS NOT NULL
       ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 100
     verified_at: 1771864500
@@ -525,7 +457,7 @@ verified_queries:
       ORDER BY num_funds_increasing DESC LIMIT 10
     verified_at: 1771868000
     verified_by: Sameer Shahzad
-    use_as_onboarding_question: true
+    use_as_onboarding_question: false
   - name: Top 5 stocks with consecutive increases in Q3 and Q4 2025
     question: What are the top 5 stocks where the most hedge funds increased their share positions consecutively in Q3 and Q4 2025?
     sql: |-
@@ -565,7 +497,7 @@ verified_queries:
       ORDER BY ts.rnk, shares_decreased DESC
     verified_at: 1770384938
     verified_by: Sameer Shahzad
-    use_as_onboarding_question: true
+    use_as_onboarding_question: false
   - name: Top 25 stocks consecutive increases Q2-Q3-Q4 2025
     question: What are the top 25 stocks hedge funds continuously increased in Q2, Q3, and Q4 2025?
     sql: |-
@@ -589,7 +521,7 @@ verified_queries:
       ORDER BY ts.rnk, total_increase DESC
     verified_at: 1770385110
     verified_by: Sameer Shahzad
-    use_as_onboarding_question: true
+    use_as_onboarding_question: false
   - name: Top 25 stocks consecutive decreases Q2-Q3-Q4 2025
     question: What are the top 25 stocks hedge funds continuously decreased in Q2, Q3, and Q4 2025?
     sql: |-
@@ -613,7 +545,7 @@ verified_queries:
       ORDER BY ts.rnk, total_decrease DESC
     verified_at: 1770385037
     verified_by: Sameer Shahzad
-    use_as_onboarding_question: true
+    use_as_onboarding_question: false
   - name: New positions initiated in Q4 2025
     question: Which new stock positions were initiated in Q4 2025?
     sql: |-
@@ -640,7 +572,7 @@ verified_queries:
       ORDER BY pct_decrease DESC NULLS LAST LIMIT 50
     verified_at: 1770385745
     verified_by: Sameer Shahzad
-    use_as_onboarding_question: true
+    use_as_onboarding_question: false
   # -- Discovery --
   - name: New IPOs with highest institutional ownership
     question: What new IPOs have the highest institutional ownership in Q4 2025?
@@ -735,10 +667,6 @@ module_custom_instructions:
     Microsoft -> company_name = 'MICROSOFT CORP'
     Alphabet -> company_name = 'ALPHABET INC' (two share classes: CL A and CL C)
     Snowflake -> company_name ILIKE '%SNOWFLAKE%'
-
-    ETF TICKER MAPPING: SPY, IVV, VOO = S&P 500; QQQ = Nasdaq 100; VTI = Total Market;
-    IWM = Russell 2000; GLD = Gold; XLK = Tech; XLF = Financials; VUG = Growth; VTV = Value;
-    SCHD = Dividend; IBIT = Bitcoin; DIA = Dow Jones; AGG = Bond.
 
     FUND RANKING QUERIES (top N, bottom N, largest, smallest funds):
     - ALWAYS add: WHERE y2025_q4_value > 0 AND hedge_fund_name IS NOT NULL
