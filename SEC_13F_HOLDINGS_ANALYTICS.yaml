@@ -249,6 +249,20 @@ verified_queries:
     verified_at: 1771864400
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
+  - name: Berkshire stocks and ETFs separately
+    question: Show me Berkshire Hathaway stocks and ETFs separately
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        CASE WHEN is_etf = TRUE THEN 'ETF' ELSE 'Stock' END AS security_type_label,
+        etf_ticker, y2025_q4_shares AS shares, y2025_q4_value AS reported_value,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE hedge_fund_name = 'BERKSHIRE HATHAWAY INC'
+        AND y2025_q4_value IS NOT NULL
+      ORDER BY is_etf ASC, y2025_q4_value DESC NULLS LAST
+    verified_at: 1771868000
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
   - name: Show Amazon holdings
     question: Show me the holdings of Amazon
     sql: |-
@@ -324,7 +338,7 @@ verified_queries:
         'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
       FROM holdings
       WHERE hedge_fund_name ILIKE '%BRIDGEWATER%'
-        AND y2025_q4_value IS NOT NULL
+        AND y2025_q4_value IS NOT NULL AND is_etf = FALSE
       ORDER BY y2025_q4_value DESC
     verified_at: 1771856029
     verified_by: Sameer Shahzad
@@ -396,6 +410,7 @@ verified_queries:
         AND y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
         AND y2025_q1_shares > y2024_q4_shares AND y2025_q2_shares > y2025_q1_shares
         AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+        AND is_etf = FALSE
       ORDER BY total_increase DESC LIMIT 5
     verified_at: 1771862432
     verified_by: Sameer Shahzad
@@ -406,7 +421,7 @@ verified_queries:
     sql: |-
       SELECT company_name, COUNT(DISTINCT hedge_fund_cik) AS fund_count
       FROM holdings
-      WHERE y2025_q4_value IS NOT NULL
+      WHERE y2025_q4_value IS NOT NULL AND is_etf = FALSE
       GROUP BY company_name
       ORDER BY fund_count DESC NULLS LAST LIMIT 10
     verified_at: 1771856130
@@ -419,7 +434,7 @@ verified_queries:
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_holding,
         SUM(y2025_q4_value) AS total_reported_value
       FROM holdings
-      WHERE y2025_q4_value IS NOT NULL
+      WHERE y2025_q4_value IS NOT NULL AND is_etf = FALSE
       GROUP BY company_name, cusip
       ORDER BY num_funds_holding DESC NULLS LAST LIMIT 50
     verified_at: 1771856324
@@ -478,6 +493,39 @@ verified_queries:
     verified_at: 1771864600
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
+  # ── Consecutive Position Changes (STOCKS ONLY — IS_ETF = FALSE) ──
+  - name: Top 10 stocks with 5-quarter consecutive increases
+    question: In the last five quarters (Q4 2024 to Q4 2025), what are the top 10 stocks on which hedge funds/institutional asset managers increased their portfolio consecutively?
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
+        SUM(y2025_q4_value) AS total_q4_value
+      FROM holdings
+      WHERE y2024_q4_shares IS NOT NULL AND y2025_q1_shares IS NOT NULL
+        AND y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+        AND y2025_q1_shares > y2024_q4_shares AND y2025_q2_shares > y2025_q1_shares
+        AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+        AND is_etf = FALSE
+      GROUP BY company_name, cusip, title_of_class
+      ORDER BY num_funds_increasing DESC LIMIT 10
+    verified_at: 1771868000
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
+  - name: Top 5 stocks with 2-quarter consecutive increases
+    question: In the last two quarters, what are the top 5 stocks on which the maximum number of hedge funds increased their positions consecutively?
+    sql: |-
+      SELECT company_name, cusip, title_of_class,
+        COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
+        SUM(y2025_q4_value) AS total_q4_value
+      FROM holdings
+      WHERE y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
+        AND y2025_q4_shares > y2025_q3_shares
+        AND is_etf = FALSE
+      GROUP BY company_name, cusip, title_of_class
+      ORDER BY num_funds_increasing DESC LIMIT 5
+    verified_at: 1771868000
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: true
   # ── Position Changes ──
   - name: Top 25 stocks hedge funds decreased last quarter
     question: In Q3 to Q4 2025 what are the top 25 stocks hedge funds decreased?
@@ -488,7 +536,7 @@ verified_queries:
           ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT hedge_fund_cik) DESC) AS rnk
         FROM holdings
         WHERE y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
-          AND y2025_q4_shares < y2025_q3_shares
+          AND y2025_q4_shares < y2025_q3_shares AND is_etf = FALSE
         GROUP BY company_name, cusip
         LIMIT 25
       )
@@ -497,7 +545,7 @@ verified_queries:
         h.y2025_q3_shares - h.y2025_q4_shares AS shares_decreased
       FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
       WHERE h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
-        AND h.y2025_q4_shares < h.y2025_q3_shares
+        AND h.y2025_q4_shares < h.y2025_q3_shares AND h.is_etf = FALSE
       ORDER BY ts.rnk, shares_decreased DESC
     verified_at: 1770384938
     verified_by: Sameer Shahzad
@@ -512,6 +560,7 @@ verified_queries:
         FROM holdings
         WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
           AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+          AND is_etf = FALSE
         GROUP BY company_name, cusip LIMIT 25
       )
       SELECT ts.rnk, h.company_name, h.cusip, ts.num_funds,
@@ -520,6 +569,7 @@ verified_queries:
       FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
       WHERE h.y2025_q2_shares IS NOT NULL AND h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
         AND h.y2025_q3_shares > h.y2025_q2_shares AND h.y2025_q4_shares > h.y2025_q3_shares
+        AND h.is_etf = FALSE
       ORDER BY ts.rnk, total_increase DESC
     verified_at: 1770385110
     verified_by: Sameer Shahzad
@@ -534,6 +584,7 @@ verified_queries:
         FROM holdings
         WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
           AND y2025_q3_shares < y2025_q2_shares AND y2025_q4_shares < y2025_q3_shares
+          AND is_etf = FALSE
         GROUP BY company_name, cusip LIMIT 25
       )
       SELECT ts.rnk, h.company_name, h.cusip, ts.num_funds,
@@ -542,6 +593,7 @@ verified_queries:
       FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
       WHERE h.y2025_q2_shares IS NOT NULL AND h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
         AND h.y2025_q3_shares < h.y2025_q2_shares AND h.y2025_q4_shares < h.y2025_q3_shares
+        AND h.is_etf = FALSE
       ORDER BY ts.rnk, total_decrease DESC
     verified_at: 1770385037
     verified_by: Sameer Shahzad
@@ -554,13 +606,13 @@ verified_queries:
         'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
       FROM holdings
       WHERE y2025_q4_shares IS NOT NULL AND y2025_q3_shares IS NULL
-        AND y2025_q2_shares IS NULL
+        AND y2025_q2_shares IS NULL AND is_etf = FALSE
       ORDER BY y2025_q4_value DESC NULLS LAST LIMIT 100
     verified_at: 1771856446
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: Worst performing positions last quarter
-    question: Worst-performing positions across all hedge funds last quarter
+    question: Worst-performing stock positions across all hedge funds last quarter
     sql: |-
       SELECT company_name, title_of_class, cusip, hedge_fund_name,
         y2025_q3_value AS q3_reported_value, y2025_q4_value AS q4_reported_value,
@@ -568,7 +620,7 @@ verified_queries:
         ROUND(100.0 * (y2025_q3_value - y2025_q4_value) / NULLIF(y2025_q3_value, 0), 2) AS pct_decrease
       FROM holdings
       WHERE y2025_q3_value IS NOT NULL AND y2025_q4_value IS NOT NULL
-        AND y2025_q4_value < y2025_q3_value
+        AND y2025_q4_value < y2025_q3_value AND is_etf = FALSE
       ORDER BY pct_decrease DESC NULLS LAST LIMIT 50
     verified_at: 1770385745
     verified_by: Sameer Shahzad
@@ -582,7 +634,7 @@ verified_queries:
         SUM(y2025_q4_value) AS total_reported_value
       FROM holdings
       WHERE y2025_q4_value IS NOT NULL AND y2025_q2_value IS NULL
-        AND y2025_q3_value IS NULL
+        AND y2025_q3_value IS NULL AND is_etf = FALSE
       GROUP BY company_name, cusip
       ORDER BY total_reported_value DESC NULLS LAST
     verified_at: 1770385325
@@ -593,14 +645,14 @@ verified_queries:
     sql: |-
       WITH stock_totals AS (
         SELECT company_name, cusip, SUM(y2025_q4_value) AS total_reported_value
-        FROM holdings WHERE y2025_q4_value IS NOT NULL
+        FROM holdings WHERE y2025_q4_value IS NOT NULL AND is_etf = FALSE
         GROUP BY company_name, cusip HAVING SUM(y2025_q4_value) < 10000000000
       ),
       accum AS (
         SELECT company_name, cusip, COUNT(DISTINCT hedge_fund_cik) AS num_funds
         FROM holdings
         WHERE y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
-          AND y2025_q4_shares > y2025_q3_shares
+          AND y2025_q4_shares > y2025_q3_shares AND is_etf = FALSE
         GROUP BY company_name, cusip HAVING COUNT(DISTINCT hedge_fund_cik) >= 3
       )
       SELECT st.company_name, st.cusip, st.total_reported_value, a.num_funds
@@ -611,9 +663,27 @@ verified_queries:
     use_as_onboarding_question: true
 module_custom_instructions:
   sql_generation: |-
-    Q4 2025 is the LATEST quarter (as of December 31, 2025). Default to Q4 2025 when no quarter specified.
+    ═══ RULE #1 — STOCK vs ETF FILTERING (HIGHEST PRIORITY) ═══
+    EVERY query MUST apply the correct IS_ETF filter based on what the user asked:
 
-    DATA SCOPE: This dataset contains STOCKS and ETFs only. Options, bonds, calls, and puts are excluded.
+    A) User says "stocks", "top stocks", "public stocks", "companies", "shares",
+       "stock positions", or "increased/decreased stocks":
+       → ALWAYS add WHERE IS_ETF = FALSE. This EXCLUDES ETFs. NO EXCEPTIONS.
+
+    B) User says "holdings" (e.g. "show holdings of X", "what does X own"):
+       → Do NOT filter on IS_ETF. Show BOTH stocks and ETFs together.
+
+    C) User says "ETFs", "index funds", or a specific ETF name/ticker:
+       → Use WHERE IS_ETF = TRUE (or etf_ticker = 'SPY', etf_category = 'S&P 500').
+
+    D) User says "stocks and ETFs" or "both stocks and ETFs":
+       → Include IS_ETF in SELECT, add CASE WHEN IS_ETF THEN 'ETF' ELSE 'Stock' END AS security_type_label,
+         ORDER BY IS_ETF ASC (stocks first, then ETFs).
+
+    REMEMBER: "top 10 stocks" means IS_ETF = FALSE. "top 10 holdings" means no filter.
+    ═══════════════════════════════════════════════════════════
+
+    Q4 2025 is the LATEST quarter (as of December 31, 2025). Default to Q4 2025 when no quarter specified.
 
     HOLDINGS OUTPUT FORMAT (MANDATORY for single-quarter holdings queries):
     1. Always include TITLE_OF_CLASS in SELECT.
@@ -622,9 +692,6 @@ module_custom_instructions:
 
     Quarter end dates: Q4 2024 → 31 Dec 2024, Q1 2025 → 31 Mar 2025, Q2 2025 → 30 Jun 2025,
     Q3 2025 → 30 Sep 2025, Q4 2025 → 31 Dec 2025.
-
-    ETF QUERIES: Use IS_ETF = TRUE to filter ETFs. For specific ETFs: etf_ticker = 'SPY'.
-    For ETF categories: etf_category = 'S&P 500'. For pure stocks (no ETFs): IS_ETF = FALSE.
 
     FUND vs COMPANY DISAMBIGUATION:
     HEDGE_FUND_NAME = the 13F filer (fund, asset manager, bank, etc.).

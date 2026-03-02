@@ -61,3 +61,24 @@ run_ingestion.sh
 
 # Snowflake-internal Streamlit version
 streamlit_in_snowflake/
+
+# Dev/test/utility scripts (not part of the product)
+diagnose_value_format.py
+download_q4_2025_edgar.py
+find_missing_filers.py
+fix_combo_reports.py
+gap_analysis.py
+get_13f_shares.py
+load_q4_to_snowflake.py
+render_step4.py
+stitch_final.py
+test_agent_holdings.py
+test_cortex_agent.py
+verify_apple_totals.py
+auto_download_monitor.sh
+download_q4_2025.sh
+agent_holdings_test_results.csv
+validation_report_13f_info.csv
+
+# Media/screen recordings
+screen/
