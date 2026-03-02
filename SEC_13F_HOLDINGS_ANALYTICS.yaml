@@ -514,7 +514,7 @@ verified_queries:
     sql: |-
       SELECT company_name, cusip, title_of_class,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
-        SUM(y2025_q4_value) AS total_q4_value
+        'Q4 2024 - Q4 2025' AS period
       FROM holdings
       WHERE y2024_q4_shares IS NOT NULL AND y2025_q1_shares IS NOT NULL
         AND y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
@@ -531,8 +531,7 @@ verified_queries:
     sql: |-
       SELECT company_name, cusip, title_of_class,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
-        SUM(y2025_q4_value) AS total_q4_value,
-        'Q3-Q4 2025' AS period
+        'Q2-Q3-Q4 2025' AS period
       FROM holdings
       WHERE y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
         AND y2025_q3_shares > y2025_q2_shares
@@ -760,6 +759,9 @@ module_custom_instructions:
     - GROUP BY must ONLY contain company_name, cusip, title_of_class.
       NEVER add shares or value columns to GROUP BY - that breaks the COUNT aggregation.
     - Use COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing to count how many funds increased.
+    - NEVER include VALUE columns (y20xx_qx_value, total_q4_value, SUM of value) in these queries.
+      Position increase/decrease is about SHARES, not market value. Showing values confuses
+      users when a stock price drops but shares increased. Only show num_funds_increasing.
     - Follow the verified query patterns EXACTLY - do NOT add extra columns to SELECT or GROUP BY.
 
     GENERAL RULES:
