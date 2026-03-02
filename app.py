@@ -25,220 +25,293 @@ st.set_page_config(
 )
 
 # ============================================
-# CUSTOM CSS - PROFESSIONAL FINANCIAL DESIGN
+# CUSTOM CSS – VIBRANT SNOWFLAKE-BRANDED DESIGN
 # ============================================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Code+Pro:wght@400;500&display=swap');
-    
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    /* ===== ROOT VARIABLES ===== */
+    :root {
+        --sf-blue: #29B5E8;
+        --sf-blue-dark: #1B8DC0;
+        --sf-blue-light: #7DD3F0;
+        --sf-navy: #0B1B34;
+        --sf-navy-light: #132D50;
+        --accent-green: #10B981;
+        --accent-amber: #F59E0B;
+        --bg-primary: #F7FAFD;
+        --bg-card: #FFFFFF;
+        --text-primary: #0F172A;
+        --text-secondary: #475569;
+        --text-muted: #94A3B8;
+        --border-light: #E2E8F0;
+        --border-blue: rgba(41, 181, 232, 0.25);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-md: 0 4px 14px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+        --shadow-lg: 0 10px 30px rgba(41,181,232,0.08), 0 4px 12px rgba(0,0,0,0.05);
+        --shadow-glow: 0 0 20px rgba(41,181,232,0.12);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 20px;
+    }
+
     /* ===== MAIN BACKGROUND ===== */
     .stApp {
-        background: linear-gradient(180deg, #0a0a0a 0%, #111827 50%, #0a0a0a 100%);
+        background: linear-gradient(160deg, #EBF5FB 0%, #F7FAFD 30%, #FFFFFF 60%, #F0F7FF 100%) !important;
     }
-    
+
+    /* ===== ANIMATED HEADER MESH (background decoration) ===== */
+    .header-glow {
+        position: relative;
+        overflow: hidden;
+    }
+    .header-glow::before {
+        content: '';
+        position: absolute;
+        top: -60%;
+        left: -20%;
+        width: 140%;
+        height: 220%;
+        background: radial-gradient(ellipse at 30% 50%, rgba(41,181,232,0.06) 0%, transparent 60%),
+                    radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.04) 0%, transparent 55%);
+        animation: meshFloat 12s ease-in-out infinite alternate;
+        pointer-events: none;
+    }
+    @keyframes meshFloat {
+        0%   { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(20px, -10px) scale(1.03); }
+    }
+
     /* ===== HEADER STYLING ===== */
     .main-header {
         font-family: 'Inter', sans-serif;
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #ffffff;
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: var(--text-primary);
         text-align: center;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.15rem;
         padding: 0.5rem 0;
-        letter-spacing: -0.5px;
+        letter-spacing: -1px;
+        line-height: 1.15;
     }
-    
-    .main-header span.gold {
-        background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
+    .main-header span.blue {
+        background: linear-gradient(135deg, #29B5E8 0%, #0EA5E9 50%, #06B6D4 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    
     .sub-header {
         font-family: 'Inter', sans-serif;
         text-align: center;
-        color: #9ca3af;
+        color: var(--text-secondary);
         font-size: 0.95rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.75rem;
         font-weight: 400;
+        line-height: 1.5;
     }
-    
-    /* ===== CHAT MESSAGES - HIGH CONTRAST ===== */
+
+    /* ===== CHAT MESSAGES ===== */
     .stChatMessage {
         background: transparent !important;
-        padding: 0.75rem 0 !important;
+        padding: 0.6rem 0 !important;
     }
-    
     [data-testid="stChatMessageContent"] {
-        font-family: 'IBM Plex Sans', sans-serif !important;
-        font-size: 1rem !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 0.98rem !important;
         line-height: 1.7 !important;
     }
-    
-    /* User message - Gold accent */
+
+    /* User bubble */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
-        background: linear-gradient(135deg, #1f2937 0%, #374151 100%) !important;
-        color: #f9fafb !important;
-        border-radius: 16px 16px 4px 16px !important;
+        background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%) !important;
+        color: var(--text-primary) !important;
+        border-radius: 18px 18px 4px 18px !important;
         padding: 1rem 1.25rem !important;
-        border-left: 4px solid #f59e0b !important;
+        border-left: 4px solid var(--sf-blue) !important;
         font-weight: 500 !important;
+        box-shadow: var(--shadow-sm) !important;
     }
-    
-    /* Assistant message - Clean white on dark */
+
+    /* Assistant bubble */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
-        background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%) !important;
-        color: #f4f4f5 !important;
-        border-radius: 16px 16px 16px 4px !important;
+        background: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+        border-radius: 18px 18px 18px 4px !important;
         padding: 1.25rem 1.5rem !important;
-        border: 1px solid #27272a !important;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4) !important;
+        border: 1px solid var(--border-light) !important;
+        box-shadow: var(--shadow-md) !important;
     }
-    
-    /* Make markdown text readable */
+
+    /* Text inside bubbles */
     [data-testid="stChatMessageContent"] p {
-        color: #e4e4e7 !important;
-        margin-bottom: 0.75rem !important;
+        color: var(--text-primary) !important;
+        margin-bottom: 0.6rem !important;
     }
-    
     [data-testid="stChatMessageContent"] strong {
-        color: #fbbf24 !important;
+        color: var(--sf-blue-dark) !important;
         font-weight: 600 !important;
     }
-    
     [data-testid="stChatMessageContent"] li {
-        color: #e4e4e7 !important;
-        margin-bottom: 0.5rem !important;
+        color: var(--text-primary) !important;
+        margin-bottom: 0.4rem !important;
     }
-    
-    [data-testid="stChatMessageContent"] ul, [data-testid="stChatMessageContent"] ol {
+    [data-testid="stChatMessageContent"] ul,
+    [data-testid="stChatMessageContent"] ol {
         padding-left: 1.5rem !important;
     }
-    
+
     /* ===== CHAT INPUT ===== */
     [data-testid="stChatInput"] {
-        background: #ffffff !important;
-        border: 2px solid #f59e0b !important;
-        border-radius: 16px !important;
+        background: var(--bg-card) !important;
+        border: 2px solid var(--border-blue) !important;
+        border-radius: var(--radius-lg) !important;
         padding: 0.5rem 1rem !important;
-        margin-top: 1.5rem !important;
-        box-shadow: 0 8px 32px rgba(245, 158, 11, 0.15) !important;
+        margin-top: 1rem !important;
+        box-shadow: var(--shadow-glow) !important;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
     }
-    
+    [data-testid="stChatInput"]:focus-within {
+        border-color: var(--sf-blue) !important;
+        box-shadow: 0 0 0 3px rgba(41,181,232,0.15), var(--shadow-glow) !important;
+    }
     [data-testid="stChatInput"] > div {
-        background: #ffffff !important;
+        background: var(--bg-card) !important;
     }
-    
     [data-testid="stChatInput"] textarea {
-        color: #111827 !important;
+        color: var(--text-primary) !important;
         font-family: 'Inter', sans-serif !important;
         font-size: 1rem !important;
-        background: #ffffff !important;
+        background: var(--bg-card) !important;
         min-height: 44px !important;
         line-height: 1.5 !important;
-        caret-color: #f59e0b !important;
+        caret-color: var(--sf-blue) !important;
     }
-    
     [data-testid="stChatInput"] textarea::placeholder {
-        color: #6b7280 !important;
+        color: var(--text-muted) !important;
     }
-    
     [data-testid="stChatInput"] button {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-        border-radius: 12px !important;
+        background: linear-gradient(135deg, #29B5E8 0%, #0EA5E9 100%) !important;
+        border-radius: 10px !important;
+        border: none !important;
+        transition: transform 0.15s ease !important;
     }
-    
+    [data-testid="stChatInput"] button:hover {
+        transform: scale(1.05) !important;
+    }
+
     /* ===== SIDEBAR ===== */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #111827 0%, #0f172a 100%) !important;
-        border-right: 1px solid #1f2937 !important;
+        background: linear-gradient(180deg, #0B1B34 0%, #0E2342 50%, #0B1B34 100%) !important;
+        border-right: 1px solid rgba(41,181,232,0.15) !important;
     }
-    
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
-        color: #d1d5db !important;
+        color: #CBD5E1 !important;
     }
-    
     .sidebar-title {
         font-family: 'Inter', sans-serif;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
-        color: #f59e0b;
+        color: var(--sf-blue);
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
         margin-bottom: 1rem;
         padding-bottom: 0.5rem;
-        border-bottom: 1px solid #374151;
+        border-bottom: 1px solid rgba(41,181,232,0.2);
     }
-    
-    /* ===== BUTTONS ===== */
+
+    /* ===== SIDEBAR BUTTONS ===== */
+    [data-testid="stSidebar"] .stButton > button {
+        background: linear-gradient(135deg, rgba(41,181,232,0.08) 0%, rgba(41,181,232,0.04) 100%) !important;
+        color: #E2E8F0 !important;
+        border: 1px solid rgba(41,181,232,0.2) !important;
+        border-radius: var(--radius-sm) !important;
+        padding: 0.55rem 0.9rem !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+        font-size: 0.82rem !important;
+        text-align: left !important;
+        transition: all 0.25s ease !important;
+        backdrop-filter: blur(8px) !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: linear-gradient(135deg, rgba(41,181,232,0.18) 0%, rgba(41,181,232,0.1) 100%) !important;
+        border-color: var(--sf-blue) !important;
+        transform: translateX(3px) !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 0 12px rgba(41,181,232,0.15) !important;
+    }
+
+    /* ===== MAIN AREA BUTTONS ===== */
     .stButton > button {
-        background: linear-gradient(135deg, #1f2937 0%, #374151 100%) !important;
-        color: #f9fafb !important;
-        border: 1px solid #4b5563 !important;
-        border-radius: 10px !important;
-        padding: 0.6rem 1rem !important;
+        background: linear-gradient(135deg, #29B5E8 0%, #0EA5E9 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: var(--radius-sm) !important;
+        padding: 0.55rem 1rem !important;
         font-family: 'Inter', sans-serif !important;
         font-weight: 500 !important;
         font-size: 0.85rem !important;
         transition: all 0.2s ease !important;
-        text-align: left !important;
+        box-shadow: 0 2px 8px rgba(41,181,232,0.2) !important;
     }
-    
     .stButton > button:hover {
-        background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
-        border-color: #f59e0b !important;
-        transform: translateX(4px) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 14px rgba(41,181,232,0.3) !important;
     }
-    
+
     /* ===== DATA TABLES ===== */
     [data-testid="stDataFrame"] {
-        background: #18181b !important;
-        border-radius: 12px !important;
-        border: 1px solid #27272a !important;
+        background: var(--bg-card) !important;
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--border-light) !important;
         overflow: hidden !important;
+        box-shadow: var(--shadow-md) !important;
     }
-    
     [data-testid="stDataFrame"] th {
-        background: #27272a !important;
-        color: #fbbf24 !important;
+        background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%) !important;
+        color: var(--sf-navy) !important;
         font-weight: 600 !important;
         font-family: 'Inter', sans-serif !important;
+        font-size: 0.85rem !important;
     }
-    
     [data-testid="stDataFrame"] td {
-        color: #e4e4e7 !important;
-        font-family: 'Source Code Pro', monospace !important;
-        font-size: 0.9rem !important;
+        color: var(--text-primary) !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.87rem !important;
     }
-    
+
     /* ===== EXPANDERS ===== */
     [data-testid="stExpander"] {
-        background: #1f1f23 !important;
-        border: 1px solid #27272a !important;
-        border-radius: 10px !important;
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: var(--radius-md) !important;
+        box-shadow: var(--shadow-sm) !important;
     }
-    
     [data-testid="stExpander"] summary {
-        color: #9ca3af !important;
+        color: var(--text-secondary) !important;
         font-family: 'Inter', sans-serif !important;
     }
-    
+    [data-testid="stExpander"] summary:hover {
+        color: var(--sf-blue) !important;
+    }
+
     /* ===== CODE BLOCKS ===== */
     code {
-        background: #27272a !important;
-        color: #fbbf24 !important;
-        padding: 0.2rem 0.5rem !important;
+        background: #EFF6FF !important;
+        color: var(--sf-blue-dark) !important;
+        padding: 0.15rem 0.45rem !important;
         border-radius: 4px !important;
-        font-family: 'Source Code Pro', monospace !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.88rem !important;
     }
-    
     pre {
-        background: #18181b !important;
-        border: 1px solid #27272a !important;
-        border-radius: 8px !important;
+        background: #F8FAFC !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: var(--radius-sm) !important;
         padding: 1rem !important;
     }
-    
+
     /* ===== STATUS INDICATOR ===== */
     .status-connected {
         display: inline-block;
@@ -249,42 +322,84 @@ st.markdown("""
         margin-right: 8px;
         animation: pulse 2s infinite;
     }
-    
     @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-        70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+        70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+        100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
     }
-    
+
     /* ===== DOWNLOAD BUTTON ===== */
     [data-testid="stDownloadButton"] button {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
         color: white !important;
         border: none !important;
         font-weight: 500 !important;
+        box-shadow: 0 2px 8px rgba(16,185,129,0.2) !important;
     }
-    
+    [data-testid="stDownloadButton"] button:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 14px rgba(16,185,129,0.3) !important;
+    }
+
     /* ===== HIDE STREAMLIT BRANDING ===== */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    
+
     /* ===== SCROLLBAR ===== */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F1F5F9; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    /* ===== METRIC CARDS (sidebar) ===== */
+    .metric-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: rgba(41,181,232,0.08);
+        border: 1px solid rgba(41,181,232,0.18);
+        border-radius: 20px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.78rem;
+        color: #93C5FD;
+        margin: 2px 0;
     }
-    
-    ::-webkit-scrollbar-track {
-        background: #18181b;
+    .metric-pill .val {
+        color: #FFFFFF;
+        font-weight: 600;
     }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #3f3f46;
-        border-radius: 4px;
+
+    /* ===== SNOWFLAKE BADGE ===== */
+    .sf-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        background: linear-gradient(135deg, rgba(41,181,232,0.1) 0%, rgba(14,165,233,0.05) 100%);
+        border: 1px solid rgba(41,181,232,0.2);
+        border-radius: 20px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.78rem;
+        color: var(--sf-blue);
+        font-weight: 500;
     }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #52525b;
+
+    /* ===== DISCLAIMER BAR ===== */
+    .disclaimer-bar {
+        display: flex;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+    .disclaimer-bar span {
+        background: #FEF3C7;
+        border: 1px solid #FDE68A;
+        border-radius: 6px;
+        padding: 6px 16px;
+        font-size: 0.75rem;
+        color: #92400E;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.15px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -659,17 +774,19 @@ def stream_cortex_response(response_stream, placeholder):
     # Thinking status (like Snowflake's "Thinking completed ✅ 1 verified query")
     thinking_status = response_container.empty()
     thinking_status.markdown("""
-<div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #1e293b; border-radius: 8px; margin-bottom: 16px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            border: 1px solid rgba(41,181,232,0.2); border-radius: 10px; margin-bottom: 16px;">
     <div class="thinking-spinner"></div>
-    <span style="color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 14px;">Thinking...</span>
+    <span style="color: #334155; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;">Thinking...</span>
 </div>
 <style>
 .thinking-spinner {
     width: 16px; height: 16px;
-    border: 2px solid #334155;
+    border: 2px solid #BFDBFE;
     border-top: 2px solid #29B5E8;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -715,17 +832,19 @@ def stream_cortex_response(response_stream, placeholder):
                             if status_msg and status_msg != last_status:
                                 last_status = status_msg
                                 thinking_status.markdown(f"""
-<div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #1e293b; border-radius: 8px; margin-bottom: 16px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            border: 1px solid rgba(41,181,232,0.2); border-radius: 10px; margin-bottom: 16px;">
     <div class="thinking-spinner"></div>
-    <span style="color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 14px;">{status_msg}</span>
+    <span style="color: #334155; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;">{status_msg}</span>
 </div>
 <style>
 .thinking-spinner {{
     width: 16px; height: 16px;
-    border: 2px solid #334155;
+    border: 2px solid #BFDBFE;
     border-top: 2px solid #29B5E8;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }}
 @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
 </style>
@@ -781,17 +900,19 @@ def stream_cortex_response(response_stream, placeholder):
                             thinking_text = data.get("text", "")
                             if thinking_text:
                                 thinking_status.markdown(f"""
-<div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #1e293b; border-radius: 8px; margin-bottom: 16px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            border: 1px solid rgba(41,181,232,0.2); border-radius: 10px; margin-bottom: 16px;">
     <div class="thinking-spinner"></div>
-    <span style="color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 14px;">{thinking_text[:80]}...</span>
+    <span style="color: #334155; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;">{thinking_text[:80]}...</span>
 </div>
 <style>
 .thinking-spinner {{
     width: 16px; height: 16px;
-    border: 2px solid #334155;
+    border: 2px solid #BFDBFE;
     border-top: 2px solid #29B5E8;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }}
 @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
 </style>
@@ -815,11 +936,13 @@ def stream_cortex_response(response_stream, placeholder):
             query_text = "completed"
         
         thinking_status.markdown(f"""
-<div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #0f172a; border-radius: 8px; margin-bottom: 16px; border: 1px solid #1e293b;">
-    <span style="color: #10b981; font-size: 16px;">✓</span>
-    <span style="color: #e2e8f0; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;">Thinking completed</span>
-    <span style="color: #64748b; font-family: 'Inter', sans-serif; font-size: 14px;">•</span>
-    <span style="color: #10b981; font-family: 'Inter', sans-serif; font-size: 14px;">{query_text}</span>
+<div style="display: flex; align-items: center; gap: 8px; padding: 12px 18px;
+            background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+            border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; margin-bottom: 16px;">
+    <span style="color: #059669; font-size: 16px; font-weight: 700;">✓</span>
+    <span style="color: #064E3B; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;">Thinking completed</span>
+    <span style="color: #6EE7B7; font-family: 'Inter', sans-serif; font-size: 14px;">·</span>
+    <span style="color: #059669; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;">{query_text}</span>
 </div>
 """, unsafe_allow_html=True)
         
@@ -829,9 +952,11 @@ def stream_cortex_response(response_stream, placeholder):
         
     except Exception as e:
         thinking_status.markdown(f"""
-<div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #450a0a; border-radius: 8px; margin-bottom: 16px;">
-    <span style="color: #ef4444;">⚠️</span>
-    <span style="color: #fca5a5; font-family: 'Inter', sans-serif; font-size: 14px;">Error: {str(e)}</span>
+<div style="display: flex; align-items: center; gap: 8px; padding: 12px 18px;
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+            border: 1px solid rgba(239,68,68,0.25); border-radius: 10px; margin-bottom: 16px;">
+    <span style="color: #DC2626; font-size: 15px;">⚠️</span>
+    <span style="color: #991B1B; font-family: 'Inter', sans-serif; font-size: 14px;">Error: {str(e)}</span>
 </div>
 """, unsafe_allow_html=True)
     
@@ -1144,9 +1269,11 @@ def display_snowflake_style_results(df, charts=None, key_prefix="results", page_
     if df is None and not charts:
         return
     
-    # Container with Snowflake Intelligence styling
+    # Container with clean card styling
     st.markdown("""
-<div style="background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 16px 0; overflow: hidden;">
+<div style="background: #FFFFFF; border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid #E2E8F0; margin: 16px 0; overflow: hidden;">
 """, unsafe_allow_html=True)
     
     # Header with Chart/Table toggle
@@ -1178,7 +1305,7 @@ def display_snowflake_style_results(df, charts=None, key_prefix="results", page_
                     if "config" not in chart_spec:
                         chart_spec["config"] = {}
                     chart_spec["config"]["view"] = {"stroke": "transparent"}
-                    chart_spec["config"]["axis"] = {"labelColor": "#374151", "titleColor": "#111827"}
+                    chart_spec["config"]["axis"] = {"labelColor": "#475569", "titleColor": "#0F172A"}
                     
                 st.vega_lite_chart(chart_spec, use_container_width=True)
             except Exception as e:
@@ -1224,9 +1351,10 @@ def display_snowflake_style_results(df, charts=None, key_prefix="results", page_
         # Pagination footer like Snowflake Intelligence
         if total_pages > 1:
             st.markdown(f"""
-<div style="display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
-    <span style="color: #64748b; font-family: 'Inter', sans-serif; font-size: 14px;">
-        <strong style="color: #1e293b;">{current_page + 1}</strong> of <strong style="color: #1e293b;">{total_pages}</strong>
+<div style="display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px;
+            background: linear-gradient(135deg, #F0F7FF 0%, #EFF6FF 100%); border-top: 1px solid #E2E8F0;">
+    <span style="color: #64748B; font-family: 'Inter', sans-serif; font-size: 14px;">
+        Page <strong style="color: #0B1B34;">{current_page + 1}</strong> of <strong style="color: #0B1B34;">{total_pages}</strong>
     </span>
 </div>
 """, unsafe_allow_html=True)
@@ -1292,23 +1420,24 @@ def parse_agent_response(response):
 # MAIN APP
 # ============================================
 
-# Header - Professional Financial Design
+# Header – Vibrant Snowflake-branded design
 st.markdown('''
-<div style="text-align: center; padding: 1rem 0 0.5rem 0;">
+<div class="header-glow" style="text-align: center; padding: 1.25rem 0 0.5rem 0;">
     <h1 class="main-header">
-        <span class="gold">13F</span> Institutional Holdings Terminal
+        <span class="blue">13F</span> Institutional Holdings Terminal
     </h1>
     <p class="sub-header">
         <a href="https://www.snowflake.com/en/data-cloud/cortex/" target="_blank"
-           style="color: #29B5E8; text-decoration: none; font-weight: 500;">Snowflake Intelligence</a>&#8209;Powered
+           style="color: #29B5E8; text-decoration: none; font-weight: 600; border-bottom: 1px dashed rgba(41,181,232,0.4);">Snowflake Intelligence</a>&#8209;Powered
         Analysis of SEC 13F Filings from Institutional Investors
     </p>
-    <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 0.5rem;">
-        <span style="color: #6b7280; font-size: 0.85rem;">❄️ Powered by <span style="color: #29B5E8; font-weight: 500;">Snowflake</span> <span style="color: #9ca3af;">Cortex Agent &amp; Cortex Code</span></span>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 0.4rem;">
+        <span class="sf-badge">
+            ❄️&nbsp; Powered by <strong style="margin-left:2px;">Snowflake</strong>&nbsp;Cortex Agent &amp; Cortex Code
+        </span>
     </div>
-    <div style="margin-top: 0.75rem; display: flex; justify-content: center;">
-        <span style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px;
-            padding: 6px 14px; font-size: 0.75rem; color: #d4a017; font-family: 'Inter', sans-serif; letter-spacing: 0.2px;">
+    <div class="disclaimer-bar">
+        <span>
             ⚠️ SEC 13F Coverage: Stocks &amp; ETFs Only · Options, Bonds &amp; Cash Holdings Are Excluded
         </span>
     </div>
@@ -1331,43 +1460,53 @@ conn = get_snowflake_connection()
 
 # Sidebar - Professional Financial Design
 with st.sidebar:
-    # Logo/Brand section
+    # Logo / Brand
     st.markdown("""
-    <div style="text-align: center; padding: 1.5rem 0; border-bottom: 1px solid #374151; margin-bottom: 1.5rem;">
-        <div style="font-size: 1.5rem; font-weight: 700; color: #fbbf24; letter-spacing: -0.5px;">13F Terminal</div>
-        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; text-transform: uppercase; letter-spacing: 1px;">Institutional Analytics</div>
+    <div style="text-align: center; padding: 1.5rem 0 1.25rem 0; border-bottom: 1px solid rgba(41,181,232,0.15); margin-bottom: 1.25rem;">
+        <div style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px;">
+            <span style="color: #29B5E8;">13F</span><span style="color: #E2E8F0;"> Terminal</span>
+        </div>
+        <div style="font-size: 0.7rem; color: #64748B; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px;">Institutional Analytics</div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Connection status
     if conn:
         st.markdown('''
-        <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem;">
+        <div style="background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.06) 100%);
+                    padding: 0.6rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+                    border: 1px solid rgba(16,185,129,0.2);">
             <span class="status-connected"></span>
-            <span style="color: #a7f3d0; font-size: 0.85rem; font-weight: 500;">Connected to <span style="color: #29B5E8; font-weight: 600;">Snowflake</span></span>
+            <span style="color: #6EE7B7; font-size: 0.82rem; font-weight: 500;">Connected to
+                <span style="color: #29B5E8; font-weight: 600;">Snowflake</span></span>
         </div>
         ''', unsafe_allow_html=True)
     else:
         st.error("❌ Not connected")
-    
-    # Creator info (no "Developer" label)
+
+    # Creator
     st.markdown("""
-    <div style="background: #1f2937; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 3px solid #f59e0b;">
-        <div style="font-size: 0.95rem; color: #f9fafb; font-weight: 600;">Sameer Shahzad</div>
-        <a href="https://www.linkedin.com/in/sameer-shahzad-87808954" target="_blank" style="color: #60a5fa; text-decoration: none; font-size: 0.8rem;">LinkedIn →</a>
+    <div style="background: rgba(41,181,232,0.06); padding: 0.7rem 1rem; border-radius: 8px;
+                margin-bottom: 1rem; border-left: 3px solid #29B5E8;">
+        <div style="font-size: 0.92rem; color: #F1F5F9; font-weight: 600;">Sameer Shahzad</div>
+        <a href="https://www.linkedin.com/in/sameer-shahzad-87808954" target="_blank"
+           style="color: #7DD3F0; text-decoration: none; font-size: 0.78rem;">LinkedIn →</a>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Data Coverage & Technology (integrated, no headings)
+
+    # Data coverage pills
     st.markdown(f"""
-    <div style="font-size: 0.8rem; color: #9ca3af; line-height: 1.9; margin-bottom: 1rem;">
-        <div>📊 <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&CIK=&type=13F&company=&dateb=&owner=include&count=40" target="_blank" style="color: #60a5fa; text-decoration: none;">SEC EDGAR 13F Filings</a></div>
-        <div>📅 {DATA_COVERAGE_LABEL}</div>
-        <div>📁 13M+ holdings · 8,300+ institutions</div>
-        <div>💰 Institutions &gt;$100M AUM</div>
+    <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 1rem;">
+        <div class="metric-pill">📊 <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&CIK=&type=13F&company=&dateb=&owner=include&count=40"
+            target="_blank" style="color: #93C5FD; text-decoration: none;">SEC EDGAR 13F Filings</a></div>
+        <div class="metric-pill">📅 <span class="val">{DATA_COVERAGE_LABEL}</span></div>
+        <div class="metric-pill">📁 <span class="val">13M+</span> holdings · <span class="val">8,300+</span> institutions</div>
+        <div class="metric-pill">💰 Institutions &gt; <span class="val">$100M</span> AUM</div>
     </div>
-    <div style="font-size: 0.75rem; color: #6b7280; line-height: 1.6; margin-bottom: 1rem;">
-        ❄️ <span style="color: #29B5E8; font-weight: 500;">Snowflake</span> Cortex Agent · 🧠 Cortex Code · 🔗 REST API
+    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem;">
+        <span class="sf-badge" style="font-size: 0.72rem;">❄️ Cortex Agent</span>
+        <span class="sf-badge" style="font-size: 0.72rem;">🧠 Cortex Code</span>
+        <span class="sf-badge" style="font-size: 0.72rem;">🔗 REST API</span>
     </div>
     """, unsafe_allow_html=True)
     

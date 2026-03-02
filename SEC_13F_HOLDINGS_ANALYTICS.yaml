@@ -202,7 +202,7 @@ verified_queries:
         SUM(y2025_q4_value) / 1000000000 AS total_aum_billions,
         COUNT(DISTINCT cusip) AS num_positions
       FROM holdings
-      WHERE y2025_q4_value IS NOT NULL
+      WHERE y2025_q4_value > 0 AND hedge_fund_name IS NOT NULL
       GROUP BY hedge_fund_name, hedge_fund_cik
       ORDER BY total_aum_billions DESC NULLS LAST LIMIT 10
     verified_at: 1771717998
@@ -216,9 +216,23 @@ verified_queries:
         COUNT(DISTINCT cusip) AS num_positions,
         'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
       FROM holdings
-      WHERE y2025_q4_value IS NOT NULL
+      WHERE y2025_q4_value > 0 AND hedge_fund_name IS NOT NULL
       GROUP BY hedge_fund_name, hedge_fund_cik
       ORDER BY total_aum_billions DESC NULLS LAST LIMIT 20
+    verified_at: 1771864700
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Bottom 100 institutional managers by AUM
+    question: Show me the bottom 100 hedge funds by AUM
+    sql: |-
+      SELECT hedge_fund_name, hedge_fund_cik,
+        SUM(y2025_q4_value) / 1000000000 AS total_aum_billions,
+        COUNT(DISTINCT cusip) AS num_positions,
+        'Q4 2025' AS period, '31 Dec 2025' AS portfolio_date
+      FROM holdings
+      WHERE y2025_q4_value > 0 AND hedge_fund_name IS NOT NULL
+      GROUP BY hedge_fund_name, hedge_fund_cik
+      ORDER BY total_aum_billions ASC NULLS LAST LIMIT 100
     verified_at: 1771864700
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
@@ -723,6 +737,13 @@ module_custom_instructions:
     ETF TICKER MAPPING: SPY, IVV, VOO = S&P 500; QQQ = Nasdaq 100; VTI = Total Market;
     IWM = Russell 2000; GLD = Gold; XLK = Tech; XLF = Financials; VUG = Growth; VTV = Value;
     SCHD = Dividend; IBIT = Bitcoin; DIA = Dow Jones; AGG = Bond.
+
+    FUND RANKING QUERIES (top N, bottom N, largest, smallest funds):
+    - ALWAYS add: WHERE y2025_q4_value > 0 AND hedge_fund_name IS NOT NULL
+    - This excludes inactive filers and rows with missing fund names.
+    - For "bottom" / "smallest" funds: use ORDER BY total_aum ASC with the filters above.
+    - For "top" / "largest" funds: use ORDER BY total_aum DESC with the filters above.
+    - NEVER return funds with 0 AUM or empty/NULL names in ranking results.
 
     GENERAL RULES:
     - Position changes: group by company_name AND cusip, use SHARES not VALUE columns
