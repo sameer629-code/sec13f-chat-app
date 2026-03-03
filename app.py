@@ -542,12 +542,28 @@ def safe_dataframe(rows, columns=None):
                 has_str = sample.map(lambda x: isinstance(x, str)).any()
                 has_non_str = sample.map(lambda x: not isinstance(x, str)).any()
                 if has_str and has_non_str:
-                    df[col] = s.map(lambda x: None if x is None else str(x))
-                else:
-                    # Try numeric coercion; if it produces at least some non-null values, keep it.
+                    # Mixed types (e.g., int CUSIPs + string CUSIPs) — stringify all
+                    df[col] = s.map(lambda x: None if (x is None or (isinstance(x, float) and pd.isna(x))) else str(x))
+                elif has_str and not has_non_str:
+                    # ALL values are strings — leave as-is, do NOT try numeric coercion.
+                    # This prevents destroying alphanumeric identifiers like CUSIPs
+                    # (e.g., 'H1467J104' would become NaN if coerced).
+                    pass
+                elif not has_str:
+                    # ALL values are non-string (Decimal, int, etc.) — safe to coerce
                     coerced = pd.to_numeric(s, errors="coerce")
                     if coerced.notna().any():
                         df[col] = coerced
+
+        # Final safety: convert remaining object columns to explicit string dtype
+        # so that pyarrow/Streamlit never attempts numeric type inference on them.
+        for col in df.columns:
+            if df[col].dtype == "object":
+                # Only convert if column actually contains strings
+                non_null = df[col].dropna()
+                if not non_null.empty and non_null.map(lambda x: isinstance(x, str)).any():
+                    df[col] = df[col].astype("string")
+
         return df
 
     try:
@@ -872,12 +888,14 @@ def stream_cortex_response(response_stream, placeholder):
                                     if "sql" in json_data:
                                         sql_query = json_data["sql"]
                                     
-                                    # Also try to get any result_set data from API
+                                    # Capture result_set data from API
+                                    # IMPORTANT: Keep only the LAST result_set to avoid mixing
+                                    # rows from intermediate CTE steps with the final result.
                                     if "result_set" in json_data:
                                         rs = json_data["result_set"]
                                         if isinstance(rs, dict) and "data" in rs:
-                                            all_result_rows.extend(rs["data"])
-                                        if result_metadata is None and "resultSetMetaData" in rs:
+                                            all_result_rows = list(rs["data"])  # Replace, don't extend
+                                        if "resultSetMetaData" in rs:
                                             result_metadata = rs["resultSetMetaData"]
                                             if "rowType" in result_metadata:
                                                 result_columns = [col.get("name") for col in result_metadata["rowType"]]
@@ -1126,7 +1144,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                         
                         # If agent metadata didn't include real column names, rerun SQL once to get them.
                         # This matches "Snowflake Intelligence" behavior where columns always reflect the query output.
-                        if sql and sql.strip().upper().startswith("SELECT"):
+                        if sql and sql.strip().upper().startswith(("SELECT", "WITH")):
                             width = len(rows[0]) if isinstance(rows[0], (list, tuple)) else (len(df.columns) if df is not None else 0)
                             if _looks_like_placeholder_columns(list(df.columns) if df is not None else None, width):
                                 try:
@@ -1139,7 +1157,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                                     pass
                 
                 # SECOND: If no agent data, try executing SQL ourselves
-                if df is None and sql and sql.strip().upper().startswith("SELECT"):
+                if df is None and sql and sql.strip().upper().startswith(("SELECT", "WITH")):
                     try:
                         cursor.execute(sql)
                         results = cursor.fetchall()
@@ -1206,7 +1224,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                                 df = None
 
                         # If we got placeholder columns, rerun SQL to get real column names.
-                        if df is not None and sql and sql.strip().upper().startswith("SELECT"):
+                        if df is not None and sql and sql.strip().upper().startswith(("SELECT", "WITH")):
                             try:
                                 width = len(df.columns)
                                 if _looks_like_placeholder_columns(list(df.columns), width):
@@ -1217,7 +1235,7 @@ def call_cortex_agent_streaming(conn, user_question, response_placeholder, conve
                             except Exception:
                                 pass
 
-                        if sql and sql.strip().upper().startswith("SELECT") and (data is None or data == [] or df is None):
+                        if sql and sql.strip().upper().startswith(("SELECT", "WITH")) and (data is None or data == [] or df is None):
                             try:
                                 cursor.execute(sql)
                                 results = cursor.fetchall()
@@ -1532,7 +1550,7 @@ with st.sidebar:
     
     # Verified example prompts
     example_prompts = [
-        "What are the top 5 stocks where the most hedge funds/institutional asset managers increased their share positions consecutively in Q3 and Q4 2025?",
+        "What are the top 5 stocks where the most hedge funds/institutional asset managers increased their share positions in both Q2 to Q3 AND Q3 to Q4 2025?",
         "What are the top 10 stocks where hedge funds increased their share positions consecutively across Q4 2024, Q1 2025, Q2 2025, Q3 2025, and Q4 2025?",
         "What are the top 5 stocks in which Berkshire Hathaway has continuously been increasing its holding position from Q4 2024 through Q4 2025?",
         "Which funds are constantly increasing their Snowflake stock holdings in Q2, Q3, and Q4 2025?",
@@ -1572,7 +1590,7 @@ with chat_container:
 # Fixed chat input at bottom (Streamlit's native chat_input)
 # Show detailed placeholder only on first interaction; keep it minimal after that
 if not st.session_state.messages:
-    _placeholder = "Ask about institutional holdings... e.g., What are the top 10 holdings of Berkshire Hathaway?"
+    _placeholder = "What are the recent changes in stock holdings for Berkshire Hathaway?"
 else:
     _placeholder = "Ask a follow-up question..."
 user_input = st.chat_input(_placeholder)

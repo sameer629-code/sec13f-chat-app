@@ -118,9 +118,9 @@ tables:
         expr: Y2025_Q4_SHARES - Y2025_Q3_SHARES
         data_type: NUMBER(19,0)
       - name: Q3_TO_Q4_SHARES_PCT_CHANGE
-        description: Percentage change in shares from Q3 to Q4 2025
-        expr: (Y2025_Q4_SHARES - Y2025_Q3_SHARES) * 100.0 / NULLIF(Y2025_Q3_SHARES, 0)
-        data_type: NUMBER(28,6)
+        description: Percentage change in shares from Q3 to Q4 2025 (already multiplied by 100, e.g. 5.2 means 5.2%)
+        expr: ROUND((Y2025_Q4_SHARES - Y2025_Q3_SHARES) * 100.0 / NULLIF(Y2025_Q3_SHARES, 0), 2)
+        data_type: NUMBER(28,2)
     filters:
       - name: ETF_ONLY
         description: Only ETF/index fund holdings
@@ -169,7 +169,7 @@ tables:
 verified_queries:
   # -- AUM & Fund Rankings --
   - name: Top 10 institutional managers by AUM
-    question: What is the total AUM in Billions for each of the top 10 institutional managers in Q4 2025?
+    question: As per the latest filing of Q4 2025, what is the total AUM in Billions for each of the top 10 institutional managers (Hedge Funds)?
     sql: |-
       SELECT hedge_fund_name, hedge_fund_cik,
         SUM(y2025_q4_value) / 1000000000 AS total_aum_billions,
@@ -290,7 +290,7 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: Snowflake increasing holders
-    question: Which funds are constantly increasing their Snowflake holdings in Q2, Q3, and Q4 2025?
+    question: Which funds are constantly increasing their Snowflake stock holdings in Q2, Q3, and Q4 2025?
     sql: |-
       SELECT hedge_fund_name, company_name, cusip, title_of_class,
         y2025_q2_shares AS q2, y2025_q3_shares AS q3, y2025_q4_shares AS q4,
@@ -299,6 +299,7 @@ verified_queries:
       WHERE company_name ILIKE '%SNOWFLAKE%'
         AND y2025_q2_shares IS NOT NULL AND y2025_q3_shares IS NOT NULL AND y2025_q4_shares IS NOT NULL
         AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
+        AND is_etf = FALSE
       ORDER BY y2025_q4_shares DESC NULLS LAST LIMIT 100
     verified_at: 1771856224
     verified_by: Sameer Shahzad
@@ -312,7 +313,7 @@ verified_queries:
       FROM holdings
       WHERE hedge_fund_name ILIKE '%BRIDGEWATER%'
         AND y2025_q4_value IS NOT NULL AND is_etf = FALSE
-      ORDER BY y2025_q4_value DESC
+      ORDER BY y2025_q4_value DESC NULLS LAST
     verified_at: 1771856029
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
@@ -343,7 +344,7 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: Berkshire Hathaway consecutive increases Q4 2024 to Q4 2025
-    question: What are the top 5 stocks Berkshire Hathaway has continuously increased from Q4 2024 to Q4 2025?
+    question: What are the top 5 stocks in which Berkshire Hathaway has continuously been increasing its holding position from Q4 2024 through Q4 2025?
     sql: |-
       SELECT company_name, title_of_class, cusip, hedge_fund_name,
         y2024_q4_shares AS q4_2024, y2025_q1_shares AS q1_2025,
@@ -358,13 +359,13 @@ verified_queries:
         AND y2025_q1_shares > y2024_q4_shares AND y2025_q2_shares > y2025_q1_shares
         AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
         AND is_etf = FALSE
-      ORDER BY total_increase DESC LIMIT 5
+      ORDER BY total_increase DESC NULLS LAST LIMIT 5
     verified_at: 1771862432
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   # -- Widely Held & Crowded --
   - name: Top 10 most widely held stocks
-    question: What are the top 10 most widely held public stocks?
+    question: As per the latest filings, what are the top 10 most widely held stocks?
     sql: |-
       SELECT company_name, COUNT(DISTINCT hedge_fund_cik) AS fund_count
       FROM holdings
@@ -375,7 +376,7 @@ verified_queries:
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: Most crowded stocks among hedge funds
-    question: Which stocks are most crowded among hedge funds?
+    question: Which companies have the highest number of institutional investors holding their stock?
     sql: |-
       SELECT company_name, cusip,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_holding,
@@ -454,12 +455,12 @@ verified_queries:
         AND y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
         AND is_etf = FALSE
       GROUP BY company_name, cusip, title_of_class
-      ORDER BY num_funds_increasing DESC LIMIT 10
+      ORDER BY num_funds_increasing DESC NULLS LAST LIMIT 10
     verified_at: 1771868000
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: Top 5 stocks with consecutive increases in Q3 and Q4 2025
-    question: What are the top 5 stocks where the most hedge funds increased their share positions consecutively in Q3 and Q4 2025?
+    question: What are the top 5 stocks where the most hedge funds/institutional asset managers increased their share positions in both Q2 to Q3 AND Q3 to Q4 2025?
     sql: |-
       SELECT company_name, cusip, title_of_class,
         COUNT(DISTINCT hedge_fund_cik) AS num_funds_increasing,
@@ -470,7 +471,7 @@ verified_queries:
         AND y2025_q4_shares > y2025_q3_shares
         AND is_etf = FALSE
       GROUP BY company_name, cusip, title_of_class
-      ORDER BY num_funds_increasing DESC LIMIT 5
+      ORDER BY num_funds_increasing DESC NULLS LAST LIMIT 5
     verified_at: 1772600000
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
@@ -494,7 +495,7 @@ verified_queries:
       FROM holdings h JOIN top_stocks ts ON h.company_name = ts.company_name AND h.cusip = ts.cusip
       WHERE h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
         AND h.y2025_q4_shares < h.y2025_q3_shares AND h.is_etf = FALSE
-      ORDER BY ts.rnk, shares_decreased DESC
+      ORDER BY ts.rnk, shares_decreased DESC NULLS LAST
     verified_at: 1770384938
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
@@ -518,7 +519,7 @@ verified_queries:
       WHERE h.y2025_q2_shares IS NOT NULL AND h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
         AND h.y2025_q3_shares > h.y2025_q2_shares AND h.y2025_q4_shares > h.y2025_q3_shares
         AND h.is_etf = FALSE
-      ORDER BY ts.rnk, total_increase DESC
+      ORDER BY ts.rnk, total_increase DESC NULLS LAST
     verified_at: 1770385110
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
@@ -542,8 +543,37 @@ verified_queries:
       WHERE h.y2025_q2_shares IS NOT NULL AND h.y2025_q3_shares IS NOT NULL AND h.y2025_q4_shares IS NOT NULL
         AND h.y2025_q3_shares < h.y2025_q2_shares AND h.y2025_q4_shares < h.y2025_q3_shares
         AND h.is_etf = FALSE
-      ORDER BY ts.rnk, total_decrease DESC
+      ORDER BY ts.rnk, total_decrease DESC NULLS LAST
     verified_at: 1770385037
+    verified_by: Sameer Shahzad
+    use_as_onboarding_question: false
+  - name: Stocks with 10x increase in institutional holders
+    question: Which stocks had a 10x increase in institutional holders in one quarter?
+    sql: |-
+      WITH q3_holders AS (
+        SELECT company_name, cusip, COUNT(DISTINCT hedge_fund_cik) AS q3_count
+        FROM holdings WHERE y2025_q3_value IS NOT NULL AND is_etf = FALSE
+        GROUP BY company_name, cusip
+      ),
+      q4_holders AS (
+        SELECT company_name, cusip, COUNT(DISTINCT hedge_fund_cik) AS q4_count
+        FROM holdings WHERE y2025_q4_value IS NOT NULL AND is_etf = FALSE
+        GROUP BY company_name, cusip
+      )
+      SELECT q4.company_name, q4.cusip,
+        COALESCE(q3.q3_count, 0) AS q3_holders,
+        q4.q4_count AS q4_holders,
+        q4.q4_count - COALESCE(q3.q3_count, 0) AS new_holders,
+        CASE WHEN COALESCE(q3.q3_count, 0) > 0
+          THEN ROUND(q4.q4_count::FLOAT / q3.q3_count, 1)
+          ELSE NULL END AS growth_multiple,
+        'Q3 -> Q4 2025' AS period
+      FROM q4_holders q4
+      LEFT JOIN q3_holders q3 ON q4.company_name = q3.company_name AND q4.cusip = q3.cusip
+      WHERE COALESCE(q3.q3_count, 0) > 0
+        AND q4.q4_count >= 10 * q3.q3_count
+      ORDER BY new_holders DESC NULLS LAST LIMIT 25
+    verified_at: 1772600000
     verified_by: Sameer Shahzad
     use_as_onboarding_question: false
   - name: New positions initiated in Q4 2025
@@ -605,7 +635,7 @@ verified_queries:
       )
       SELECT st.company_name, st.cusip, st.total_reported_value, a.num_funds
       FROM stock_totals st JOIN accum a ON st.company_name = a.company_name AND st.cusip = a.cusip
-      ORDER BY a.num_funds DESC, st.total_reported_value DESC
+      ORDER BY a.num_funds DESC NULLS LAST, st.total_reported_value DESC NULLS LAST
     verified_at: 1770385420
     verified_by: Sameer Shahzad
     use_as_onboarding_question: true
@@ -680,7 +710,7 @@ module_custom_instructions:
     - Quarter-over-quarter share comparisons are safe and accurate.
 
     CONSECUTIVE POSITION CHANGE QUERIES (top N stocks funds increased/decreased):
-    - "Increased in Q3 and Q4" = TWO transitions: shares went up in Q3 (vs Q2) AND in Q4 (vs Q3).
+    - "Increased in both Q2 to Q3 AND Q3 to Q4" or "consecutively in Q3 and Q4" = TWO transitions:
       Requires: y2025_q3_shares > y2025_q2_shares AND y2025_q4_shares > y2025_q3_shares
     - "Increased in Q2, Q3, and Q4" = THREE transitions: Q1->Q2, Q2->Q3, Q3->Q4.
     - "Increased from Q4 2024 through Q4 2025" = FOUR transitions: Q4'24->Q1, Q1->Q2, Q2->Q3, Q3->Q4.
@@ -695,8 +725,16 @@ module_custom_instructions:
       users when a stock price drops but shares increased. Only show num_funds_increasing.
     - Follow the verified query patterns EXACTLY - do NOT add extra columns to SELECT or GROUP BY.
 
+    PERCENTAGE CALCULATIONS:
+    - ALWAYS multiply by 100 to express as a true percentage.
+    - Correct formula: ROUND((new - old) * 100.0 / NULLIF(old, 0), 2)
+    - Example: a change from 100 to 105 shares = ROUND((105-100)*100.0/100, 2) = 5.00 (meaning 5%)
+    - NEVER return raw decimals like 0.05; always return 5.00.
+    - Use the built-in fact Q3_TO_Q4_SHARES_PCT_CHANGE when available (it already applies * 100).
+
     GENERAL RULES:
     - Position changes: group by company_name AND cusip, use SHARES not VALUE columns
     - "Widely held": COUNT(DISTINCT hedge_fund_cik)
     - "How many stocks": COUNT(DISTINCT cusip)
     - Default limit: 1000 results unless user specifies
+    - ALWAYS use NULLS LAST on ORDER BY DESC to avoid NULL values appearing at the top
