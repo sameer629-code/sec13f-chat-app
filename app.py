@@ -1518,7 +1518,7 @@ with st.sidebar:
         <div class="metric-pill">📊 <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&CIK=&type=13F&company=&dateb=&owner=include&count=40"
             target="_blank" style="color: #93C5FD; text-decoration: none;">SEC EDGAR 13F Filings</a></div>
         <div class="metric-pill">📅 <span class="val">{DATA_COVERAGE_LABEL}</span></div>
-        <div class="metric-pill">📁 <span class="val">13M+</span> holdings · <span class="val">8,300+</span> institutions</div>
+        <div class="metric-pill" style="white-space: nowrap;">📁 <span class="val">13M+</span>&nbsp;holdings&nbsp;&nbsp;·&nbsp;&nbsp;<span class="val">8,300+</span>&nbsp;institutions</div>
         <div class="metric-pill">💰 Institutions &gt; <span class="val">$100M</span> AUM</div>
     </div>
     <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem;">
